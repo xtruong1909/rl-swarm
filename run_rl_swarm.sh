@@ -57,7 +57,7 @@ install_and_configure() {
     chmod +x "$HOME/.local/bin/ngrok"
 }
 
-# ... phần còn lại giữ nguyên nội dung gốc của bạn, chỉ thay sudo mv bằng cách copy vào $HOME/.local/bin như trên nếu có ...
+# ... phần còn lại giữ nguyên nội dung gốc của bạn, chỉ thay mv bằng cách copy vào $HOME/.local/bin như trên nếu có ...
 
 cleanup() {
     echo -e "${YELLOW}${BOLD}[✓] Shutting down processes...${NC}"
@@ -163,7 +163,7 @@ else
             return 1
         fi
         chmod +x cloudflared
-        sudo mv cloudflared /usr/local/bin/
+        mv cloudflared /usr/local/bin/
         if [ $? -ne 0 ]; then
             echo -e "${RED}${BOLD}[✗] Failed to move cloudflared to /usr/local/bin/.${NC}"
             return 1
@@ -190,7 +190,7 @@ else
             rm ngrok.tgz
             return 1
         fi
-        sudo mv ngrok /usr/local/bin/
+        mv ngrok /usr/local/bin/
         if [ $? -ne 0 ]; then
             echo -e "${RED}${BOLD}[✗] Failed to move ngrok to /usr/local/bin/.${NC}"
             rm ngrok.tgz
