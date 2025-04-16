@@ -39,6 +39,35 @@ cleanup() {
 
 trap cleanup INT
 
+mkdir -p "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+
+install_binary_to_local() {
+    local url=$1
+    local name=$2
+    wget -q --show-progress "$url" -O "$HOME/.local/bin/$name"
+    chmod +x "$HOME/.local/bin/$name"
+}
+
+install_and_configure() {
+    local arch=$1
+    install_binary_to_local "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$arch" cloudflared
+    install_binary_to_local "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-$arch.tgz" ngrok_temp.tgz
+    tar -xzf "$HOME/.local/bin/ngrok_temp.tgz" -C "$HOME/.local/bin" && rm "$HOME/.local/bin/ngrok_temp.tgz"
+    chmod +x "$HOME/.local/bin/ngrok"
+}
+
+# ... phần còn lại giữ nguyên nội dung gốc của bạn, chỉ thay sudo mv bằng cách copy vào $HOME/.local/bin như trên nếu có ...
+
+cleanup() {
+    echo -e "${YELLOW}${BOLD}[✓] Shutting down processes...${NC}"
+    kill $SERVER_PID 2>/dev/null || true
+    kill $TUNNEL_PID 2>/dev/null || true
+    exit 0
+}
+
+trap cleanup INT
+
 if [ -f "modal-login/temp-data/userData.json" ]; then
     cd modal-login
 
