@@ -1,4 +1,3 @@
-
 # Model arguments
 model_name_or_path: Gensyn/Qwen2.5-0.5B-Instruct
 model_revision: main
@@ -15,7 +14,7 @@ dataset_id_or_path: 'openai/gsm8k'
 # No LoRA is used here
 
 # Training arguments
-max_steps: 6 # Original 450
+max_steps: 20 # Original 450
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 8
 gradient_checkpointing: true
