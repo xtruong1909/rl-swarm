@@ -30,7 +30,7 @@ def count_xml(text) -> float:
 
 # Reward functions
 def correctness_reward_func(
-    prompts, completions, answer, weighting=2.0, logging=False, **kwargs
+    prompts, completions, answer, weighting=10.0, logging=False, **kwargs
 ) -> list[float]:
     responses = [completion[0]["content"] for completion in completions]
     q = prompts[0][-1]["content"]
@@ -54,13 +54,13 @@ def correctness_reward_func(
     ]
 
 
-def int_reward_func(completions, weighting=0.5, **kwargs) -> list[float]:
+def int_reward_func(completions, weighting=2.5, **kwargs) -> list[float]:
     responses = [completion[0]["content"] for completion in completions]
     extracted_responses = [extract_xml_answer(r) for r in responses]
     return [1.0 * weighting if r.isdigit() else 0.0 for r in extracted_responses]
 
 
-def strict_format_reward_func(completions, weighting=0.5, **kwargs) -> list[float]:
+def strict_format_reward_func(completions, weighting=2.5, **kwargs) -> list[float]:
     """Reward function that checks if the completion has a specific format."""
     pattern = r"^<think>\n.*?\n</think>\n<answer>\n.*?\n</answer>\n$"
     responses = [completion[0]["content"] for completion in completions]
@@ -68,7 +68,7 @@ def strict_format_reward_func(completions, weighting=0.5, **kwargs) -> list[floa
     return [1.0 * weighting if match else 0.0 for match in matches]
 
 
-def soft_format_reward_func(completions, weighting=0.5, **kwargs) -> list[float]:
+def soft_format_reward_func(completions, weighting=2.5, **kwargs) -> list[float]:
     """Reward function that checks if the completion has a specific format."""
     pattern = r"<think>.*?</think>\s*<answer>.*?</answer>"
     responses = [completion[0]["content"] for completion in completions]
@@ -76,7 +76,7 @@ def soft_format_reward_func(completions, weighting=0.5, **kwargs) -> list[float]
     return [1.0 * weighting if match else 0.0 for match in matches]
 
 
-def xmlcount_reward_func(completions, weighting=1.0, **kwargs) -> list[float]:
+def xmlcount_reward_func(completions, weighting=5.0, **kwargs) -> list[float]:
     contents = [completion[0]["content"] for completion in completions]
     return [count_xml(c) * weighting for c in contents]
 
