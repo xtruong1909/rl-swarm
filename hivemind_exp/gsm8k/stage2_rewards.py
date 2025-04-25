@@ -45,18 +45,18 @@ def extract_answers(text: str) -> str:
 def count_xml(text) -> float:
     count = 0.0
     if text.count("<compare>\n") == 1:
-        count += 0.125
+        count += 2
     if text.count("\n</compare>\n") == 1:
-        count += 0.125
+        count += 2
     if text.count("<explain>\n") == 1:
-        count += 0.125
+        count += 2
     if text.count("\n</explain>\n") == 1:
-        count += 0.125
+        count += 2
     if text.count("\n<identify>\n") == 1:
-        count += 0.125
+        count += 2
         count -= len(text.split("\n</identify>\n")[-1]) * 0.001
     if text.count("\n</identify>") == 1:
-        count += 0.125
+        count += 2
         count -= (len(text.split("\n</identify>")[-1]) - 1) * 0.001
     return count
 
