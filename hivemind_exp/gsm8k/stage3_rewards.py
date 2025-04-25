@@ -257,7 +257,7 @@ def final_correctness_reward_func(
 
 
 def strict_format_reward_func(
-    completions, weighting=0.5, logging=False, **kwargs
+    completions, weighting=2.5, logging=False, **kwargs
 ) -> list[float]:
     """Reward function that checks if the completion has a specific format."""
     pattern = r"^<summarize_feedback>\n.*?\n</summarize_feedback>\n<majority>\n.*?\n</majority>\n<question>\n.*?\n</question>\n<think>\n.*?\n</think>\n<answer>\n.*?\n</answer>\n$"
@@ -281,7 +281,7 @@ def strict_format_reward_func(
 
 
 def soft_format_reward_func(
-    completions, weighting=0.5, logging=False, **kwargs
+    completions, weighting=2.5, logging=False, **kwargs
 ) -> list[float]:
     """Reward function that checks if the completion has a specific format."""
     pattern = r"<summarize_feedback>.*?</summarize_feedback>\s*<majority>.*?</majority>\s*<question>.*?</question>\s*<think>.*?</think>\s*<answer>.*?</answer>"
@@ -305,7 +305,7 @@ def soft_format_reward_func(
 
 
 def xmlcount_reward_func(
-    completions, weighting=1.0, logging=False, **kwargs
+    completions, weighting=5.0, logging=False, **kwargs
 ) -> list[float]:
     contents = [completion[0]["content"] for completion in completions]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
