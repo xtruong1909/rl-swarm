@@ -63,7 +63,7 @@ def count_xml(text) -> float:
 
 # Reward functions
 def proper_id_reward_func(
-    prompts, completions, answer, weighting=2.0, logging=True, **kwargs
+    prompts, completions, answer, weighting=10.0, logging=True, **kwargs
 ) -> list[float]:
     responses = [completion[0]["content"] for completion in completions]
     p = prompts[0][-1]["content"]
@@ -87,7 +87,7 @@ def proper_id_reward_func(
 
 
 def correctness_reward_func(
-    prompts, completions, answer, weighting=2.0, logging=True, **kwargs
+    prompts, completions, answer, weighting=10.0, logging=True, **kwargs
 ) -> list[float]:
     responses = [completion[0]["content"] for completion in completions]
     p = prompts[0][-1]["content"]
@@ -172,7 +172,7 @@ def strict_format_reward_func(
 
 
 def soft_format_reward_func(
-    completions, weighting=0.5, logging=True, **kwargs
+    completions, weighting=2.5, logging=True, **kwargs
 ) -> list[float]:
     """Reward function that checks if the completion has a specific format."""
     pattern = (
@@ -198,7 +198,7 @@ def soft_format_reward_func(
 
 
 def xmlcount_reward_func(
-    completions, weighting=1.0, logging=True, **kwargs
+    completions, weighting=5.0, logging=True, **kwargs
 ) -> list[float]:
     contents = [completion[0]["content"] for completion in completions]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
