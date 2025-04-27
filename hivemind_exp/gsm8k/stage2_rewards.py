@@ -261,67 +261,44 @@ def hivemind_cumulative_reward(
     **kwargs,
 ) -> list[float]:
     """
-    Reward function tổng hợp + luôn xuất bản node.outputs & node.rewards ngay lập tức.
-    Chọn theo output_signal_selector: 'max', 'mean', hoặc mặc định (publish tất cả).
+    Dummy reward function that accumulates all rewards into one + saves JSON to node.outputs
     """
-    # 1) Tính các sub-reward
-    proper_id_reward   = proper_id_reward_func(prompts, completions, answer, logging=logging)
-    correctness_reward = correctness_reward_func(prompts, completions, answer, logging=logging)
-    strict_fmt         = strict_format_reward_func(completions, logging=logging)
-    soft_fmt           = soft_format_reward_func(completions, logging=logging)
-    xmlcount           = xmlcount_reward_func(completions, logging=logging)
-
-    # 2) Tổng hợp thành total_reward
+    proper_id_reward = proper_id_reward_func(
+        prompts, completions, answer, logging=logging
+    )
+    correctness_reward = correctness_reward_func(
+        prompts, completions, answer, logging=logging
+    )
+    strict_format_reward = strict_format_reward_func(completions, logging=logging)
+    soft_format_reward = soft_format_reward_func(completions, logging=logging)
+    xmlcount_reward = xmlcount_reward_func(completions, logging=logging)
     total_reward = [
-        sum(vals) for vals in zip(
+        sum(tup)
+        for tup in zip(
             proper_id_reward,
             correctness_reward,
-            strict_fmt,
-            soft_fmt,
-            xmlcount,
+            strict_format_reward,
+            soft_format_reward,
+            xmlcount_reward,
         )
     ]
 
-    # 3) Chuẩn bị dữ liệu chung
-    responses   = [c[0]["content"] for c in completions]
-    question    = extract_original_question(prompts[0][-1]["content"])
-    prompt_text = prompts[0][-1]["content"]
-
-    # 4) Xác định output_data theo selector
+    question = extract_original_question(prompts[0][-1]["content"])
     if output_signal_selector == "max":
-        idx = int(np.argmax(total_reward))
-        chosen = responses[idx]
+        # Generate output line
+        maximal_reward_idx, responses = (
+            np.argmax(total_reward),
+            [completion[0]["content"] for completion in completions],
+        )
         output_data = {
-            "question":      question,
-            "answer":        answer[0],
-            "stage2_prompt": prompt_text,
-            "agent_opinion": {node.key: chosen},
+            "question": question,
+            "answer": answer[0],
+            "stage2_prompt": prompts[0][-1]["content"],
+            "agent_opinion": {node.key: responses[maximal_reward_idx]},
         }
 
-    elif output_signal_selector == "mean":
-        mean_val = sum(total_reward) / len(total_reward)
-        idx = min(range(len(total_reward)),
-                  key=lambda i: abs(total_reward[i] - mean_val))
-        chosen = responses[idx]
-        output_data = {
-            "question":      question,
-            "answer":        answer[0],
-            "stage2_prompt": prompt_text,
-            "agent_opinion": {node.key: chosen},
-        }
+    if output_signal_selector != None:
+        node.outputs = output_data
+        node.rewards = total_reward
 
-    else:
-        # default: publish tất cả responses
-        output_data = {
-            "question":      question,
-            "answer":        answer[0],
-            "stage2_prompt": prompt_text,
-            "agent_opinion": {node.key: responses},
-        }
-
-    # 5) Luôn lưu vào node và publish
-    node.outputs = output_data
-    node.rewards = total_reward
-
-    # 6) Trả về zeros (reward thực sự dùng node.rewards)
     return [0.0 for _ in total_reward]
