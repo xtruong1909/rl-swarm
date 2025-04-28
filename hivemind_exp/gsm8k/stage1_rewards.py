@@ -119,41 +119,58 @@ def hivemind_cumulative_reward(
     output_signal_selector="max",
     **kwargs,
 ) -> list[float]:
-    """
-    Dummy reward function that accumulates all rewards into one + saves JSON to node.outputs
-    """
-    correctness_reward = correctness_reward_func(
-        prompts, completions, answer, logging=logging
-    )
-    int_reward = int_reward_func(completions)
-    strict_format_reward = strict_format_reward_func(completions)
-    soft_format_reward = soft_format_reward_func(completions)
-    xmlcount_reward = xmlcount_reward_func(completions)
+    # 1) Tính các sub-reward
+    correctness_reward = correctness_reward_func(prompts, completions, answer, logging=logging)
+    int_reward       = int_reward_func(completions)
+    strict_fmt       = strict_format_reward_func(completions)
+    soft_fmt         = soft_format_reward_func(completions)
+    xmlcount         = xmlcount_reward_func(completions)
+
+    # 2) Tổng hợp
     total_reward = [
-        sum(tup)
-        for tup in zip(
+        sum(vals) for vals in zip(
             correctness_reward,
             int_reward,
-            strict_format_reward,
-            soft_format_reward,
-            xmlcount_reward,
+            strict_fmt,
+            soft_fmt,
+            xmlcount,
         )
     ]
 
+    # 3) Chuẩn bị danh sách response
+    responses = [c[0]["content"] for c in completions]
+
+    # 4) Chọn output_data tùy selector
+    question = prompts[0][-1]["content"]
+    best_answer = None
+
     if output_signal_selector == "max":
-        # Generate output line
-        maximal_reward_idx, responses = (
-            np.argmax(total_reward),
-            [completion[0]["content"] for completion in completions],
-        )
-        output_data = {
-            "question": prompts[0][-1]["content"],
-            "answer": answer[0],
-            "agent_answers": {node.key: responses[maximal_reward_idx]},
+        idx = int(np.argmax(total_reward))
+        best_answer = responses[idx]
+
+    elif output_signal_selector == "mean":
+        mean_val = sum(total_reward) / len(total_reward)
+        # tìm idx có reward gần mean nhất
+        idx = min(range(len(total_reward)), key=lambda i: abs(total_reward[i] - mean_val))
+        best_answer = responses[idx]
+
+    else:
+        # default: publish tất cả responses
+        node.outputs = {
+            "question": question,
+            "answer": answer[0] if answer else None,
+            "agent_answers": {node.key: responses},
         }
-
-    if output_signal_selector != None:
-        node.outputs = output_data
         node.rewards = total_reward
+        return [0.0] * len(total_reward)
 
+    # 5) Với max/mean, publish single best
+    node.outputs = {
+        "question": question,
+        "answer": answer[0] if answer else None,
+        "agent_answers": {node.key: best_answer},
+    }
+    node.rewards = total_reward
+
+    # 6) luôn return zeros (reward đã được ghi vào node.rewards)
     return [0.0 for _ in total_reward]
