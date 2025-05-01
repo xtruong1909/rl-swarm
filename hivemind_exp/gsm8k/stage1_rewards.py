@@ -225,7 +225,8 @@ def hivemind_cumulative_reward(
     node.rewards = total_reward
 
     # 6) luôn return zeros (reward đã được ghi vào node.rewards)
-    return [0.0 for _ in total_reward]import os
+    return [0.0 for _ in total_reward]
+import os
 import random
 import re
 
