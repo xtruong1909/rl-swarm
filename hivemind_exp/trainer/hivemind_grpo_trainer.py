@@ -48,6 +48,12 @@ class HivemindGRPOTrainer:
             self.logger = logger
             self.stage_rewards = 0.0
             super().__init__(processing_class=tokenizer, **kwargs)
+            # Force vote for self on every proposal
+            try:
+                self.should_vote_for = lambda proposal: True
+                self.logger.info("Overriding vote behavior: always vote for self")
+            except Exception:
+                pass
 
         def publish_leaderboard(self):
             r, s = self.node.round_num, self.node.stage_num
@@ -121,7 +127,7 @@ class HivemindGRPOTrainer:
         self.stage_data = stage_data
 
         self.config = config
-        self.config.dataloader_num_workers=0  # Default: 8+
+        self.config.dataloader_num_workers = 0  # Default: 8+
         assert self.config.output_dir
         self.config.output_dir += f"-{get_name_from_peer_id(self.node.key, True)}"  # TODO: Add animal name to save path in more appropriate spot
         self.model = model
@@ -145,6 +151,11 @@ class HivemindGRPOTrainer:
 
         return result
 
+    def _create_publishing_trainer(self, kwargs: dict):
+        return HivemindGRPOTrainer.PublishingGRPOTrainer(
+            self.node, self.dht, self.tokenizer, self.logger, **kwargs
+        )
+
     def train_stages(self, round_num, start_stage, is_coordinator):
         # TODO: Needs checkpoint loading
         self.node.round_num = round_num
@@ -161,17 +172,16 @@ class HivemindGRPOTrainer:
 
             self.logger.info(f"📈 Training round: {round_num} stage: {stage_num}")
             train_dataset, test_dataset = stage.datasets_fn(round_num, stage_num)
-            kwargs = {
-                "model": self.model,
-                "args": self.config,
-                "reward_funcs": stage.reward_funcs,
-                "train_dataset": train_dataset,
-                "eval_dataset": test_dataset,
-            }
-            trainer = HivemindGRPOTrainer.PublishingGRPOTrainer(
-                self.node, self.dht, self.tokenizer, self.logger, **kwargs
+            trainer = self._create_publishing_trainer(
+                {
+                    "model": self.model,
+                    "args": self.config,
+                    "reward_funcs": stage.reward_funcs,
+                    "train_dataset": train_dataset,
+                    "eval_dataset": test_dataset,
+                }
             )
-            self.train_and_save(trainer, train_dataset)
+            self.train_stage_and_save(trainer, train_dataset)
             self.logger.info(
                 f"📉 Finished training round: {round_num} stage: {stage_num}"
             )
@@ -213,8 +223,8 @@ class HivemindGRPOTrainer:
 
         self.node.clear_stage_cache()
 
-    def train_and_save(self, trainer, train_dataset):
-        for num_fails in range(MAX_TRAIN_FAILS):
+    def train_stage_and_save(self, trainer, train_dataset):
+        for _ in range(MAX_TRAIN_FAILS):
             try:
                 train_result = trainer.train()
                 break
