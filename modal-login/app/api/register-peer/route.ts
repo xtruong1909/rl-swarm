@@ -2,6 +2,7 @@ import { TurnkeyClient } from "@turnkey/http";
 import { ApiKeyStamper } from "@turnkey/api-key-stamper";
 import { getLatestApiKey, getUser } from "@/app/db";
 import { NextResponse } from "next/server";
+import contract from "@/app/lib/contract.json"
 import {
   Address,
   createWalletClient,
@@ -9,6 +10,7 @@ import {
   SignableMessage,
   hashMessage,
   encodeFunctionData,
+  decodeErrorResult,
 } from "viem";
 import {
   alchemy,
@@ -18,6 +20,8 @@ import {
 import { toAccount } from "viem/accounts";
 import { WalletClientSigner } from "@aa-sdk/core";
 import { createModularAccountV2 } from "@account-kit/smart-contracts";
+import { SendUserOperationErrorType } from "viem/account-abstraction";
+import { httpRequestErroDetailsStringSchema } from "@/app/lib/HttpRequestError";
 
 const TURNKEY_BASE_URL = "https://api.turnkey.com";
 const ALCHEMY_BASE_URL = "https://api.g.alchemy.com";
@@ -128,21 +132,7 @@ export async function POST(request: Request) {
       uo: {
         target: contractAdrr,
         data: encodeFunctionData({
-          abi: [
-            {
-              name: "registerPeer",
-              type: "function",
-              inputs: [
-                {
-                  name: "peerId",
-                  type: "string",
-                  internalType: "string",
-                },
-              ],
-              outputs: [],
-              stateMutability: "nonpayable",
-            },
-          ],
+          abi: contract.abi,
           functionName: "registerPeer",
           args: [body.peerId],
         }),
@@ -159,10 +149,52 @@ export async function POST(request: Request) {
     );
   } catch (err) {
     console.error(err);
+    // Casting is not ideal but is canonical way of handling errors as per the
+    // viem docs.
+    //
+    // See: https://viem.sh/docs/error-handling#error-handling
+    const error = err as SendUserOperationErrorType
+    if (error.name !== "HttpRequestError") {
+      return NextResponse.json(
+        {
+          error: "An unexpected error occurred",
+          original: error
+        },
+        {
+          status: 500,
+        },
+      );
+    }
+
+    const parsedDetailsResult = httpRequestErroDetailsStringSchema.safeParse(error.details)
+
+    if (!parsedDetailsResult.success) {
+      return NextResponse.json(
+        {
+          error: "An unexpected error occurred getting request details",
+          parseError: parsedDetailsResult.error,
+          original: error.details
+        },
+        {
+          status: 500,
+        },
+      );
+    }
+
+    const { data: { data: { revertData } } } = parsedDetailsResult;
+
+    const decodedError = decodeErrorResult({
+      data: revertData,
+      abi: contract.abi
+    })
+
     return NextResponse.json(
-      { error: "error" },
       {
-        status: 500,
+        error: decodedError.errorName,
+        metaMessages: error.metaMessages,
+      },
+      {
+        status: error?.status || 500,
       },
     );
   }
