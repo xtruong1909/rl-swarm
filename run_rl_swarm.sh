@@ -119,6 +119,9 @@ while true; do
     esac
 done
 
+# Create logs directory if it doesn't exist
+mkdir -p "$ROOT/logs"
+
 if [ "$CONNECT_TO_TESTNET" = true ]; then
     # Run modal_login server.
     echo "Please login to create an Ethereum Server Wallet"
@@ -152,8 +155,10 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
             npm install -g --silent yarn
         fi
     fi
+
+
     yarn install
-    yarn dev > /dev/null 2>&1 & # Run in background and suppress output
+    yarn dev > "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
 
     SERVER_PID=$!  # Store the process ID
     echo "Started server process: $SERVER_PID"

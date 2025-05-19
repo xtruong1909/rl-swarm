@@ -2,7 +2,6 @@ import gc
 import hashlib
 import logging
 import time
-import traceback
 from typing import Any
 
 import datasets
@@ -10,6 +9,7 @@ import torch
 from hivemind.dht import DHT
 from hivemind.utils import get_dht_time
 from trl import GRPOConfig, GRPOTrainer
+import wandb
 
 from hivemind_exp.debug_utils import print_system_info
 from hivemind_exp.dht_utils import (
@@ -133,6 +133,9 @@ class HivemindGRPOTrainer:
             log_tag = self.node.key
 
         self.logger = logging.getLogger(f"{__name__}:{log_tag}")
+        if "wandb" in self.config.report_to:
+            self.wandb_run = wandb.init(project='rl-swarm', dir='logs', name=get_name_from_peer_id(self.node.key, True), mode="offline")
+
 
     def wait_for(self, result_fn=lambda: None, interval=10, timeout=30):
         start_time = time.monotonic()
@@ -219,6 +222,7 @@ class HivemindGRPOTrainer:
             pass
 
         self.node.clear_stage_cache()
+        self.wandb_run.finish()
 
     def train_stage_and_save(self, trainer, train_dataset):
         for _ in range(MAX_TRAIN_FAILS):
@@ -335,7 +339,6 @@ class HivemindGRPOTrainer:
             self._train()
 
         except Exception:
-            self.logger.error("Encountered error during training!")
-            print_system_info()
-            traceback.print_exc()
+            self.logger.debug(print_system_info())
+            self.logger.exception("Exception during training:", stack_info=True)
             raise

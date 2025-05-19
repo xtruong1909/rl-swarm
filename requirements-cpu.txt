@@ -6,4 +6,5 @@ peft
 tensorboard
 transformers>=4.46.0
 trl
+wandb
 web3

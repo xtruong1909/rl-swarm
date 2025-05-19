@@ -1,9 +1,9 @@
+import sys
 import logging
 
 # Needs to be before trl!
 from hivemind_exp.runner.grpo_runner import GRPOArguments, GRPORunner
 
-import colorlog
 from trl import GRPOConfig, ModelConfig, TrlParser
 
 from hivemind_exp.chain_utils import (
@@ -13,6 +13,7 @@ from hivemind_exp.chain_utils import (
 )
 from hivemind_exp.gsm8k.generate_prompts import get_stage1_samples as gsm8k_stage1_samples
 from hivemind_exp.dapo.generate_prompts import get_stage1_samples as dapo_stage1_samples
+from hivemind_exp.debug_utils import print_system_info, TeeHandler, PrintCapture
 from hivemind_exp.runner.gensyn.testnet_grpo_runner import (
     TestnetGRPOArguments,
     TestnetGRPORunner,
@@ -20,17 +21,22 @@ from hivemind_exp.runner.gensyn.testnet_grpo_runner import (
 
 
 def main():
-    # Setup logging.
+    # Setup logging
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(
-        colorlog.ColoredFormatter("%(green)s%(levelname)s:%(name)s:%(message)s")
-    )
-    root_logger.addHandler(handler)
+    root_logger.setLevel(logging.DEBUG)
+    
+    # Create and add the TeeHandler
+    tee_handler = TeeHandler("logs/swarm.log", mode='w')
+    tee_handler.setLevel(logging.DEBUG)
+    root_logger.addHandler(tee_handler)
+    
+    # Log system info and set up print capture
+    root_logger.debug(print_system_info())
+    sys.stdout = PrintCapture(root_logger)
 
     parser = TrlParser((ModelConfig, GRPOArguments, TestnetGRPOArguments, GRPOConfig))  # type: ignore
     model_args, grpo_args, testnet_args, training_args = parser.parse_args_and_config()
+    training_args.logging_dir = "logs" 
 
     # Run main training loop.
     contract_address = testnet_args.contract_address
