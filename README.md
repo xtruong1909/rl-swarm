@@ -52,7 +52,7 @@ This software is **experimental** and provided as-is for users who are intereste
 
 If you care about on-chain participation, you **must** read the [Identity Management](#identity-management) section below.
 
-If you encounter issues, please first check [Troubleshooting](#troubleshooting). If you cannot find a solution there, please check if there is an open (or closed) [Issue](../../issues). If there is no relevant issue, please file one and include 1) all relevant logs, 2) information about your device (e.g. which GPU, if relevant), and 3) your operating system information.
+If you encounter issues, please first check [Troubleshooting](#troubleshooting). If you cannot find a solution there, please check if there is an open (or closed) [Issue](../../issues). If there is no relevant issue, please file one and include 1) all relevant [logs](#troubleshooting), 2) information about your device (e.g. which GPU, if relevant), and 3) your operating system information.
 
 ## Instructions
 
@@ -94,6 +94,23 @@ You can also track your training progress in real time:
 - For the Math swarm (GSM8K dataset): [dashboard-math.gensyn.ai](https://dashboard-math.gensyn.ai)
 - For the Math Hard swarm (DAPO-Math 17K dataset): [dashboard-math-hard.gensyn.ai](https://dashboard-math-hard.gensyn.ai)
 
+### Uploading training stats to Weights & Biases (wandb.ai)
+
+Once you stop the `rl_swarm.sh` process in your console (e.g., by pressing Ctrl+C), you will see a message similar to this:
+
+```sh
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync logs/wandb/offline-run-xxxxxxxx_xxxxxx-xxxxxxxxxx
+```
+
+To upload your training statistics:
+
+1. Make sure you have created an account on [wandb.ai](https://wandb.ai/).
+2. Copy the wandb sync command provided in your terminal (the part that looks like `wandb sync logs/wandb/offline-run-xxxxxxxx_xxxxxx-xxxxxxxxxx`).
+3. Run that command in your terminal.
+
+This will upload your local training run data to the Weights & Biases cloud, allowing you to visualize and track your experiments. For more details on this command, you can refer to the [official documentation](https://docs.wandb.ai/ref/cli/wandb-sync).
+
 ## Identity management
 
 ### Introduction
@@ -122,6 +139,11 @@ Therefore, you should do these actions in the following scenarios
 - **Signed up with `email address`, generated `swarm.pem`, kept `swarm.pem`** -> you can re-run a single node using this pair if you've still got them both.
 
 ## Troubleshooting
+
+- **How do I find my logs?** You can find them inside the `/logs` directory:
+    - `yarn.log`: This file contains logs for the modal login server.
+    - `swarm.log`: This is the main log file for the RL Swarm application.
+    - `wandb/`: This directory contains various logs related to your training runs, including a `debug.log` file. These can be updated to Weights & Biases (see [above](#uploading-training-stats-to-weights--biases-wandbai)).
 
 - **My peer 'skipped a round'**: this occurs when your device isn't fast enough to keep up with the pace of the swarm. For example, if you start training at round 100 and by the time you finish training the rest of the swarm reaches round 102, you will skip round 101 and go straight to 102. This is because your peer is more valuable if it is participating in the active round.
 - **My model doesn't seem to be training?**
