@@ -340,5 +340,5 @@ class HivemindGRPOTrainer:
 
         except Exception:
             self.logger.debug(print_system_info())
-            self.logger.exception("Exception during training:", stack_info=True)
+            self.logger.exception("Exception during training", stack_info=True)
             raise

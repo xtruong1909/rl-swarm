@@ -7,6 +7,7 @@
 temp-data/
 
 swarm.pem
+logs/
 runs/
 model_output_samples/
 grpo_trainer_lora_model/

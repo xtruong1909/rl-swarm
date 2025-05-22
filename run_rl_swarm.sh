@@ -156,7 +156,6 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
         fi
     fi
 
-
     yarn install
     yarn dev > "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
 
@@ -219,10 +218,11 @@ else
     pip install flash-attn --no-build-isolation
 
     case "$PARAM_B" in
-        32 | 72) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-bnb-4bit-deepseek-r1.yaml" && break ;;
-        0.5 | 1.5 | 7) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-deepseek-r1.yaml" && break ;;
-        *)  echo ">>> Please answer in [0.5, 1.5, 7, 32, 72]." ;;
+        32 | 72) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-bnb-4bit-deepseek-r1.yaml" ;;
+        0.5 | 1.5 | 7) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-deepseek-r1.yaml" ;;
+        *) exit 1 ;;
     esac
+
     if [ "$USE_BIG_SWARM" = true ]; then
         GAME="dapo"
     else

@@ -4,9 +4,10 @@ datasets
 hivemind @ git+https://github.com/learning-at-home/hivemind@1.11.11
 hf-transfer
 peft
+pytest
 tensorboard
 torch
-transformers>=4.46.0
+transformers==4.48.2
 trl
 unsloth @ git+https://github.com/gensyn-ai/unsloth@unpin_proto
 unsloth_zoo @ git+https://github.com/gensyn-ai/unsloth-zoo@unpin_proto
