@@ -6,8 +6,6 @@ services:
     environment:
       - OTEL_SERVICE_NAME=rlswarm-fastapi
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-    ports:
-      - "8080:8000"
     depends_on:
       - otel-collector
     healthcheck:
