@@ -1,7 +1,7 @@
 # Model arguments
 model_revision: main
-torch_dtype: bfloat16
-bf16: true
+torch_dtype: float16
+bf16: false
 tf32: false
 
 # Dataset arguments
