@@ -165,7 +165,7 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
         sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
     fi
 
-    yarn install
+    yarn install --immutable
     echo "Building server"
     yarn build > "$ROOT/logs/yarn.log" 2>&1
     yarn start >> "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
