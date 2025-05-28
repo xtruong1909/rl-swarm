@@ -82,6 +82,13 @@ export default function Home() {
     }
   }, []);
 
+  // Automatically open auth modal if user is not logged in and signer is not initializing
+  useEffect(() => {
+    if (!user && !signerStatus.isInitializing) {
+      openAuthModal();
+    }
+  }, [user, signerStatus.isInitializing, openAuthModal]);
+
   return (
     <main className="flex min-h-screen flex-col items-center gap-4 justify-center text-center">
       {signerStatus.isInitializing || (user && !createdApiKey) ? (
