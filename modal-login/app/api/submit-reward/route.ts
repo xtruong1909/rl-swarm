@@ -153,7 +153,7 @@ export async function POST(request: Request) {
         metaMessages: error.metaMessages,
       },
       {
-        status: error?.status || 500,
+        status: 500,
       },
     );
   }
