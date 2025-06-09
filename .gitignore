@@ -5,7 +5,7 @@
 .env
 .next/
 temp-data/
-
+genrl-swarm/
 swarm.pem
 logs/
 runs/
