@@ -19,7 +19,7 @@ const writeJson = (filePath: string, data: any) => {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 };
 
-interface UserData {
+export interface UserData {
   orgId: string;
   address: string;
   userId: string;
@@ -30,6 +30,8 @@ interface UserApiKey {
   publicKey: string;
   privateKey: string;
   createdAt: Date;
+  deferredActionDigest?: string;
+  accountAddress?: string;
   activated?: boolean;
 }
 
@@ -80,7 +82,12 @@ export const getLatestApiKey = (orgId: string): UserApiKey | null => {
   return keys?.[keys.length - 1] ?? null;
 };
 
-export const setApiKeyActivated = (orgId: string, apiKey: string): void => {
+export const setApiKeyActivated = (
+  orgId: string,
+  apiKey: string,
+  deferredActionDigest: string,
+  accountAddress: string,
+): void => {
   const apiKeyData = readJson(apiKeyPath);
   const keys: UserApiKey[] = apiKeyData[orgId];
   const key = keys.find((k) => k.publicKey === apiKey);
@@ -90,7 +97,9 @@ export const setApiKeyActivated = (orgId: string, apiKey: string): void => {
   const updatedData = {
     ...apiKeyData,
     [orgId]: keys.map((k) =>
-      k.publicKey === apiKey ? { ...k, activated: true } : k,
+      k.publicKey === apiKey
+        ? { ...k, activated: true, deferredActionDigest, accountAddress }
+        : k,
     ),
   };
   writeJson(apiKeyPath, updatedData);
