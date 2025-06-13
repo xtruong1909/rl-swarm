@@ -191,52 +191,54 @@ class GossipDHTPublisher(BaseDHTPublisher):
 
             round_gossip = []
 
-            payloads = self.dht.get(str(self.current_round))
-            if not payloads:
+            round_data = self.dht.get(str(self.current_round))
+            if not round_data:
                 self.logger.info("No gossip found for round", extra={"round": self.current_round})
                 return
 
             # Update the last polled time
             self.last_polled = datetime.now(timezone.utc)
 
-            payloads, _ = payloads
-            
-            for peer_id, payload_data in payloads.items():
-                self.logger.info("Processing payload", extra={
-                    "peer_id": peer_id,
-                    "payload_type": type(payload_data).__name__,
-                })
-                payload_obj = from_bytes(payload_data.value)
+            for peer_id, value_with_expiration in round_data.value.items():
+                bytes = value_with_expiration.value
+                payload_dict = from_bytes(bytes)
 
-                if not isinstance(payload_obj, Payload):
-                    self.logger.error("Invalid payload type", extra={"peer_id": peer_id, "payload_type": type(payload_obj).__name__})
-                    continue
+                # Flatten the payloads into a list of payloads.
+                all_payloads = []
+                for _, payload_list in payload_dict.items():
+                    all_payloads.extend(payload_list)
 
-                world_state_tuple = payload_obj.world_state
+                # For each payload, generate a gossip message.
+                for payload in all_payloads:
+                    world_state_tuple = payload.world_state
+                    question = world_state_tuple.environment_states["question"]
+                    actions = payload.actions
+                    source_dataset = world_state_tuple.environment_states["metadata"]["source_dataset"]
+                    action = random.choice(actions) if actions else ""
 
-                actions = payload_obj["actions"]
-                agent_actions = []
-                for action in actions:
-                    agent_actions.append(action)
-                
-                question = world_state_tuple.environment_states["question"]
-                source_dataset = world_state_tuple.environment_states["metadata"]["source_dataset"]
+                    # Stamp the message with the current time.
+                    now_utc = datetime.now(timezone.utc)
+                    ts = int(now_utc.timestamp())
 
-                # Gossip ID is built on: node_id, round, action.
-                # Randomly select an action from the list of actions.
-                now_utc = datetime.now(timezone.utc)
-                ts = int(now_utc.timestamp())
-                action = random.choice(actions) if actions else ""
-                gossip_id = hashlib.md5(f"{peer_id}-{self.current_round}-{action}-{source_dataset}".encode()).hexdigest()
-                round_gossip.append((
-                    ts, {
-                        "id": gossip_id,
-                        "message": f"{question}...{action}",
-                        "node": get_name_from_peer_id(peer_id),
-                        "nodeId": peer_id,
-                        "dataset": source_dataset,
-                    }
-                ))
+                    # Generate a unique ID for the gossip message.
+                    gossip_id = hashlib.md5(f"{question}-{peer_id}-{self.current_round}-{action}-{source_dataset}".encode()).hexdigest()
+                    round_gossip.append((
+                        ts, {
+                            "id": gossip_id,
+                            "message": f"{question}...{action}",
+                            "node": get_name_from_peer_id(peer_id),
+                            "nodeId": peer_id,
+                            "dataset": source_dataset,
+                        }
+                    ))
+
+            self.logger.info("Got gossip messages", extra={
+                "message_count": len(round_gossip),
+            })
+
+            # Shuffle the gossip messages to attempt to avoid getting only 1 peer, and only publish 200.
+            random.shuffle(round_gossip)
+            round_gossip = round_gossip[:200]
 
             self._publish_gossip(round_gossip)
 
