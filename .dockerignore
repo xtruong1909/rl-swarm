@@ -1,0 +1,6 @@
+runs
+tmp
+bazel-*
+.*
+!.git
+user

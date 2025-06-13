@@ -23,3 +23,5 @@ dist/
 MODULE.bazel.lock
 **/.direnv
 .tmux.conf
+
+user/

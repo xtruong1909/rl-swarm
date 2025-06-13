@@ -25,3 +25,38 @@ services:
       test: ["CMD", "grpc_health_probe", "-addr=localhost:4317"]
       interval: 5s
       retries: 5
+
+  swarm-cpu:
+    profiles: ["swarm"]
+    build:
+      context: .
+      dockerfile: containerfiles/swarm-node/swarm-cpu.containerfile
+    ports:
+      - 3000:3000
+    volumes:
+      - ./user/modal-login:/home/gensyn/rl_swarm/modal-login/temp-data
+      - ./user/keys:/home/gensyn/rl_swarm/keys
+      - ./user/configs:/home/gensyn/rl_swarm/configs
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+
+  swarm-gpu:
+    profiles: ["swarm"]
+    build:
+      context: .
+      dockerfile: containerfiles/swarm-node/swarm-gpu.containerfile
+    ports:
+      - 3000:3000
+    volumes:
+      - ./user/modal-login:/home/gensyn/rl_swarm/modal-login/temp-data
+      - ./user/keys:/home/gensyn/rl_swarm/keys
+      - ./user/configs:/home/gensyn/rl_swarm/configs
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

@@ -17,7 +17,7 @@ export HUGGINGFACE_ACCESS_TOKEN="None"
 DEFAULT_IDENTITY_PATH="$ROOT"/swarm.pem
 IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
 
-
+DOCKER=${DOCKER:-""}
 
 # Will ignore any visible GPUs if set.
 CPU_ONLY=${CPU_ONLY:-""}
@@ -124,7 +124,11 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
 
     yarn install --immutable
     echo "Building server"
-    yarn build > "$ROOT/logs/yarn.log" 2>&1
+
+    # Docker image already builds it, no need to again.
+    if [ -z "$DOCKER" ]; then
+        yarn build > "$ROOT/logs/yarn.log" 2>&1
+    fi
     yarn start >> "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
 
     SERVER_PID=$!  # Store the process ID
@@ -173,7 +177,7 @@ git submodule update --init --recursive genrl-swarm
 echo_green ">> Installing GenRL."
 if [ -d "$ROOT/genrl-swarm" ]; then
     cd "$ROOT/genrl-swarm"
-    pip install -e .[examples] 
+    pip install -e .[examples]
     cd "$ROOT" 
 else
     echo_red "Error: genrl-swarm submodule not found at $ROOT/genrl-swarm"
