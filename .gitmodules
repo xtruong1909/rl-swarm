@@ -1,3 +1,0 @@
-[submodule "genrl-swarm"]
-	path = genrl-swarm
-	url = git@github.com:gensyn-ai/genrl-swarm-private.git
