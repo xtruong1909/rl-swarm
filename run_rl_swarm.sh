@@ -172,7 +172,8 @@ pip install --upgrade pip
 
 # Clone GenRL repository to user's working directory
 echo_green ">> Initializing and updating GenRL..."
-git submodule update --init --recursive genrl-swarm
+# git submodule update --init --recursive genrl-swarm
+git clone git@github.com:gensyn-ai/genrl-swarm-private.git genrl-swarm
 
 echo_green ">> Installing GenRL."
 if [ -d "$ROOT/genrl-swarm" ]; then
