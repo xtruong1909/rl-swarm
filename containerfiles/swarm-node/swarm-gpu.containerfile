@@ -40,13 +40,12 @@ RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && \
     npm install -g --silent yarn
 
 COPY ./containerfiles/swarm-node/versions.json ./versions.json
-COPY ./requirements-gpu.txt ./requirements-gpu.txt
 
 COPY ./containerfiles/swarm-node/setup_python.sh ./setup_python.sh
 RUN ./setup_python.sh
 
-COPY ./containerfiles/swarm-node/install_pip_gpu.sh ./install_pip_gpu.sh
-RUN ./install_pip_gpu.sh
+COPY ./containerfiles/swarm-node/install_pip.sh ./install_pip.sh
+RUN ./install_pip.sh
 
 ENV PATH="/home/gensyn/.pyenv/shims:/home/gensyn/.pyenv/bin:$NVM_DIR/versions/node/v${NODE_VERSION}/bin/:${PATH}"
 

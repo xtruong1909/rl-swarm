@@ -7,4 +7,3 @@ set -euo pipefail
 
 pip install --upgrade pip
 
-pip install --user -r ./requirements-cpu.txt
