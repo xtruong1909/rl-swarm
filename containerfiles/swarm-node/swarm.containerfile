@@ -1,4 +1,5 @@
-FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
 LABEL maintainer="Christopher Nies <christopher@gensyn.ai>"
 
 ENV DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC
@@ -52,14 +53,15 @@ ENV PATH="/home/gensyn/.pyenv/shims:/home/gensyn/.pyenv/bin:$NVM_DIR/versions/no
 COPY --chown=gensyn ./modal-login /home/gensyn/rl_swarm/modal-login
 RUN cd /home/gensyn/rl_swarm/modal-login && yarn install --immutable && yarn build
 
-COPY --chown=gensyn . /home/gensyn/rl_swarm
+# REMOVEME: Need to have cloned genrl-swarm first. Can do it as part of the image build once
+# it's public.
 COPY --chown=gensyn ./genrl-swarm /home/gensyn/rl_swarm/genrl-swarm
-COPY --chown=gensyn ./run_rl_swarm.sh /home/gensyn/rl_swarm/run_rl_swarm.sh
 
 WORKDIR /home/gensyn/rl_swarm
 ENV DOCKER=t
 ENV IDENTITY_PATH=/home/gensyn/rl_swarm/keys/swarm.pem
 
-RUN cd /home/gensyn/rl_swarm/genrl-swarm && pip install .[examples]
+RUN cd /home/gensyn/rl_swarm/genrl-swarm && pip install -e .[examples]
+COPY --chown=gensyn . /home/gensyn/rl_swarm
 
 CMD [ "bash", "-c", "/home/gensyn/rl_swarm/run_rl_swarm.sh" ]

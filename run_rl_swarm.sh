@@ -19,6 +19,14 @@ IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
 
 DOCKER=${DOCKER:-""}
 
+# Bit of a workaround for the non-root docker container.
+if [ -n "$DOCKER" ]; then
+    sudo chown -R 1001:1001 /home/gensyn/rl_swarm/modal-login/temp-data
+    sudo chown -R 1001:1001 /home/gensyn/rl_swarm/keys
+    sudo chown -R 1001:1001 /home/gensyn/rl_swarm/configs
+    sudo chown -R 1001:1001 /home/gensyn/rl_swarm/logs
+fi
+
 # Will ignore any visible GPUs if set.
 CPU_ONLY=${CPU_ONLY:-""}
 
