@@ -26,7 +26,7 @@ export interface UserData {
   email?: string;
 }
 
-interface UserApiKey {
+export interface UserApiKey {
   publicKey: string;
   privateKey: string;
   createdAt: Date;
