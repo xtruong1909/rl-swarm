@@ -32,6 +32,7 @@ export interface UserApiKey {
   createdAt: Date;
   deferredActionDigest?: string;
   accountAddress?: string;
+  initCode?: string;
   activated?: boolean;
 }
 
@@ -87,6 +88,7 @@ export const setApiKeyActivated = (
   apiKey: string,
   deferredActionDigest: string,
   accountAddress: string,
+  initCode: string,
 ): void => {
   const apiKeyData = readJson(apiKeyPath);
   const keys: UserApiKey[] = apiKeyData[orgId];
@@ -98,7 +100,13 @@ export const setApiKeyActivated = (
     ...apiKeyData,
     [orgId]: keys.map((k) =>
       k.publicKey === apiKey
-        ? { ...k, activated: true, deferredActionDigest, accountAddress }
+        ? {
+            ...k,
+            activated: true,
+            deferredActionDigest,
+            accountAddress,
+            initCode,
+          }
         : k,
     ),
   };

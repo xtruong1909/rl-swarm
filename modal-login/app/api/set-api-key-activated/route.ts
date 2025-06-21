@@ -7,6 +7,7 @@ export async function POST(request: Request) {
     apiKey: string;
     deferredActionDigest: string;
     accountAddress: string;
+    initCode: string;
   } = await request.json().catch((err) => {
     console.error(err);
     return NextResponse.json(
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
       body.apiKey,
       body.deferredActionDigest,
       body.accountAddress,
+      body.initCode,
     );
     return NextResponse.json({ activated: true }, { status: 200 });
   } catch (err) {

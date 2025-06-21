@@ -8,7 +8,7 @@ import { LocalAccountSigner } from "@aa-sdk/core";
 import { createModularAccountV2 } from "@account-kit/smart-contracts";
 import { UserApiKey } from "../db";
 import { sendUserOperation } from "@/app/lib/sendUserOperation";
-import { encodeFunctionData, decodeErrorResult } from "viem";
+import { encodeFunctionData, decodeErrorResult, Hex } from "viem";
 import contract from "@/app/lib/contract.json";
 import { httpRequestErroDetailsStringSchema } from "./HttpRequestError";
 
@@ -25,14 +25,15 @@ export async function userOperationHandler(
     apiKey: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY!,
   });
 
+  const { accountAddress, privateKey, initCode, deferredActionDigest } = apiKey;
+
   const account = await createModularAccountV2({
     transport,
     chain: gensynTestnet,
-    accountAddress: apiKey.accountAddress as `0x${string}`,
-    signer: LocalAccountSigner.privateKeyToAccountSigner(
-      apiKey.privateKey as `0x${string}`,
-    ),
-    deferredAction: apiKey.deferredActionDigest as `0x${string}`,
+    accountAddress: accountAddress as Hex,
+    signer: LocalAccountSigner.privateKeyToAccountSigner(privateKey as Hex),
+    deferredAction: deferredActionDigest as Hex,
+    initCode: initCode as Hex,
   });
 
   const client = createAlchemySmartAccountClient({

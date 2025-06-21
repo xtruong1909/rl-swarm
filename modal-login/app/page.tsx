@@ -85,6 +85,8 @@ export default function Home() {
         signer,
       });
 
+      const initCode = await account.getInitCode();
+
       const client = (
         await createModularAccountV2Client({
           signer,
@@ -134,6 +136,7 @@ export default function Home() {
           orgId: user.orgId,
           apiKey: publicKey,
           accountAddress: account.address,
+          initCode,
           deferredActionDigest,
         }),
       });
