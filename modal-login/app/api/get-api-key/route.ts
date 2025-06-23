@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       privateKey,
       publicKey,
       createdAt: new Date(),
+      activated: false,
     });
 
     return NextResponse.json({ publicKey }, { status: 200 });
