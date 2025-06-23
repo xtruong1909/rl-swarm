@@ -6,34 +6,43 @@ import {
 } from "@account-kit/infra";
 import { LocalAccountSigner } from "@aa-sdk/core";
 import { createModularAccountV2 } from "@account-kit/smart-contracts";
-import { UserApiKey } from "../db";
 import { sendUserOperation } from "@/app/lib/sendUserOperation";
 import { encodeFunctionData, decodeErrorResult, Hex } from "viem";
 import contract from "@/app/lib/contract.json";
 import { httpRequestErroDetailsStringSchema } from "./HttpRequestError";
 
+type UserOperationHandlerRequest = {
+  accountAddress: Hex;
+  privateKey: Hex;
+  deferredActionDigest: Hex;
+  initCode: Hex;
+  functionName: string;
+  args: unknown[];
+};
+
 /**
  * `userOperationHandler` is a shared handler for nextjs routes implementing
  * some of the common boiler plate used to send user operations to the chain.
  */
-export async function userOperationHandler(
-  apiKey: UserApiKey,
-  functionName: string,
-  args: unknown[],
-): Promise<NextResponse> {
+export async function userOperationHandler({
+  accountAddress,
+  privateKey,
+  deferredActionDigest,
+  initCode,
+  functionName,
+  args,
+}: UserOperationHandlerRequest): Promise<NextResponse> {
   const transport = alchemy({
     apiKey: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY!,
   });
 
-  const { accountAddress, privateKey, initCode, deferredActionDigest } = apiKey;
-
   const account = await createModularAccountV2({
     transport,
     chain: gensynTestnet,
-    accountAddress: accountAddress as Hex,
-    signer: LocalAccountSigner.privateKeyToAccountSigner(privateKey as Hex),
-    deferredAction: deferredActionDigest as Hex,
-    initCode: initCode as Hex,
+    accountAddress,
+    signer: LocalAccountSigner.privateKeyToAccountSigner(privateKey),
+    deferredAction: deferredActionDigest,
+    initCode,
   });
 
   const client = createAlchemySmartAccountClient({

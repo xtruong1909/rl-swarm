@@ -47,11 +47,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const userOperationResponse = await userOperationHandler(
-      apiKey,
-      "submitWinners",
-      [body.roundNumber, body.winners, body.peerId],
-    );
+    const { accountAddress, privateKey, initCode, deferredActionDigest } =
+      apiKey;
+
+    const userOperationResponse = await userOperationHandler({
+      accountAddress,
+      privateKey,
+      deferredActionDigest,
+      initCode,
+      functionName: "submitWinners",
+      args: [body.roundNumber, body.winners, body.peerId],
+    });
 
     return userOperationResponse;
   } catch (err) {
