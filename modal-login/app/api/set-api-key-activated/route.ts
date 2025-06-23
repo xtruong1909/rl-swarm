@@ -1,18 +1,8 @@
 import { setApiKeyActivated } from "@/app/db";
-import { hexSchema } from "@/app/lib/schemas";
 import { NextResponse } from "next/server";
-import z from "zod";
-
-const bodySchema = z.object({
-  orgId: z.string(),
-  apiKey: hexSchema,
-  deferredActionDigest: hexSchema,
-  accountAddress: hexSchema,
-  initCode: hexSchema,
-});
 
 export async function POST(request: Request) {
-  const rawBody: {
+  const body: {
     orgId: string;
     apiKey: string;
     deferredActionDigest: string;
@@ -25,18 +15,6 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   });
-
-  const bodyResult = bodySchema.safeParse(rawBody);
-
-  if (!bodyResult.success) {
-    console.error(bodyResult.error);
-    return NextResponse.json(
-      { json: { error: "bad request", details: bodyResult.error } },
-      { status: 400 },
-    );
-  }
-
-  const body = bodyResult.data;
 
   try {
     setApiKeyActivated(

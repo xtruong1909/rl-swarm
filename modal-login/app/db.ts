@@ -3,62 +3,38 @@
 
 import fs from "fs";
 import path from "path";
-import { z, ZodSchema } from "zod";
-import { hexSchema } from "./lib/schemas";
-import { Hex } from "viem";
 
 const userDataPath = path.join(process.cwd(), "./temp-data/userData.json");
 const apiKeyPath = path.join(process.cwd(), "./temp-data/userApiKey.json");
 
-function readJson<T extends ZodSchema>(
-  filePath: string,
-  schema: T,
-): z.infer<T> {
+const readJson = (filePath: string): any => {
   if (!fs.existsSync(filePath)) {
     return {};
   }
   const fileData = fs.readFileSync(filePath, "utf-8");
-  const raw = JSON.parse(fileData);
+  return JSON.parse(fileData);
+};
 
-  return schema.parse(raw);
-}
-
-const writeJson = (filePath: string, data: ApiKeyRecord | UserDataRecord) => {
+const writeJson = (filePath: string, data: any) => {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 };
 
-const userDataSchema = z.object({
-  orgId: z.string(),
-  address: z.string(),
-  userId: z.string(),
-  email: z.optional(z.string()),
-});
-const userDataRecordSchema = z.record(userDataSchema);
+export interface UserData {
+  orgId: string;
+  address: string;
+  userId: string;
+  email?: string;
+}
 
-export type UserData = z.infer<typeof userDataSchema>;
-type UserDataRecord = z.infer<typeof userDataRecordSchema>;
-
-export const userApiKeySchema = z.discriminatedUnion("activated", [
-  z.object({
-    publicKey: hexSchema,
-    privateKey: hexSchema,
-    createdAt: z.coerce.date(),
-    deferredActionDigest: hexSchema,
-    accountAddress: hexSchema,
-    initCode: hexSchema,
-    activated: z.literal(true),
-  }),
-  z.object({
-    publicKey: hexSchema,
-    privateKey: hexSchema,
-    createdAt: z.coerce.date(),
-    activated: z.literal(false),
-  }),
-]);
-export const apiKeyRecordSchema = z.record(z.array(userApiKeySchema));
-
-export type UserApiKey = z.infer<typeof userApiKeySchema>;
-type ApiKeyRecord = z.infer<typeof apiKeyRecordSchema>;
+export interface UserApiKey {
+  publicKey: string;
+  privateKey: string;
+  createdAt: Date;
+  deferredActionDigest?: string;
+  accountAddress?: string;
+  initCode?: string;
+  activated?: boolean;
+}
 
 /**
  * Upsert a user's data and their API key. Removes all other users
@@ -70,8 +46,8 @@ type ApiKeyRecord = z.infer<typeof apiKeyRecordSchema>;
  */
 export const upsertUser = (data: UserData, apiKey: UserApiKey) => {
   // Read from disk.
-  const usersData = readJson(userDataPath, userDataRecordSchema);
-  const apiKeyData = readJson(apiKeyPath, apiKeyRecordSchema);
+  const usersData = readJson(userDataPath);
+  const apiKeyData = readJson(apiKeyPath);
 
   // Update data.
   usersData[data.orgId] = data;
@@ -94,7 +70,7 @@ export const upsertUser = (data: UserData, apiKey: UserApiKey) => {
  * Retrieve user data for a given organization id.
  */
 export const getUser = (orgId: string): UserData | null => {
-  const userData = readJson(userDataPath, userDataRecordSchema);
+  const userData = readJson(userDataPath);
   return userData[orgId] ?? null;
 };
 
@@ -102,25 +78,25 @@ export const getUser = (orgId: string): UserData | null => {
  * Get the latest API key for a given organization id.
  */
 export const getLatestApiKey = (orgId: string): UserApiKey | null => {
-  const apiKeyData = readJson(apiKeyPath, apiKeyRecordSchema);
+  const apiKeyData = readJson(apiKeyPath);
   const keys: UserApiKey[] = apiKeyData[orgId];
   return keys?.[keys.length - 1] ?? null;
 };
 
 export const setApiKeyActivated = (
   orgId: string,
-  apiKey: Hex,
-  deferredActionDigest: Hex,
-  accountAddress: Hex,
-  initCode: Hex,
+  apiKey: string,
+  deferredActionDigest: string,
+  accountAddress: string,
+  initCode: string,
 ): void => {
-  const apiKeyData = readJson(apiKeyPath, apiKeyRecordSchema);
-  const keys = apiKeyData[orgId];
+  const apiKeyData = readJson(apiKeyPath);
+  const keys: UserApiKey[] = apiKeyData[orgId];
   const key = keys.find((k) => k.publicKey === apiKey);
   if (!key) {
     throw new Error("API key not found");
   }
-  const updatedData: ApiKeyRecord = {
+  const updatedData = {
     ...apiKeyData,
     [orgId]: keys.map((k) =>
       k.publicKey === apiKey
