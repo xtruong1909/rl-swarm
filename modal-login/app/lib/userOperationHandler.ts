@@ -108,6 +108,8 @@ export async function userOperationHandler(
       );
 
       if (!parsedDetailsResult.success) {
+        console.error(`Failed to parse details of request error.`);
+        console.error(error.details);
         return NextResponse.json(
           {
             error: "An unexpected error occurred getting request details",
