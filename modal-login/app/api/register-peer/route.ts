@@ -35,12 +35,7 @@ export async function POST(request: Request) {
       );
     }
     const apiKey = getLatestApiKey(body.orgId);
-    if (
-      !apiKey ||
-      !apiKey.deferredActionDigest ||
-      !apiKey.accountAddress ||
-      !apiKey.initCode
-    ) {
+    if (!apiKey?.activated) {
       return NextResponse.json(
         { error: "api key not found" },
         {
