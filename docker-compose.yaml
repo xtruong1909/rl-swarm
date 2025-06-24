@@ -42,6 +42,7 @@ services:
       - ./user/logs:/home/gensyn/rl_swarm/logs
     environment:
       - HF_TOKEN=${HF_TOKEN}
+      - GENSYN_RESET_CONFIG=${GENSYN_RESET_CONFIG}
 
   # Requires the NVIDIA Drivers version >=525.60.13 to be installed, as well
   # as the nvidia-container-toolkit.
@@ -64,6 +65,7 @@ services:
       - ./user/logs:/home/gensyn/rl_swarm/logs
     environment:
       - HF_TOKEN=${HF_TOKEN}
+      - GENSYN_RESET_CONFIG=${GENSYN_RESET_CONFIG}
     deploy:
       resources:
         reservations:

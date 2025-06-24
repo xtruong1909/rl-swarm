@@ -6,6 +6,7 @@ set -euo pipefail
 ROOT=$PWD
 
 export IDENTITY_PATH
+export GENSYN_RESET_CONFIG
 export CONNECT_TO_TESTNET=true
 export ORG_ID
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
@@ -18,13 +19,20 @@ DEFAULT_IDENTITY_PATH="$ROOT"/swarm.pem
 IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
 
 DOCKER=${DOCKER:-""}
+GENSYN_RESET_CONFIG=${GENSYN_RESET_CONFIG:-""}
 
 # Bit of a workaround for the non-root docker container.
 if [ -n "$DOCKER" ]; then
-    sudo chown -R 1001:1001 /home/gensyn/rl_swarm/modal-login/temp-data
-    sudo chown -R 1001:1001 /home/gensyn/rl_swarm/keys
-    sudo chown -R 1001:1001 /home/gensyn/rl_swarm/configs
-    sudo chown -R 1001:1001 /home/gensyn/rl_swarm/logs
+    volumes=(
+        /home/gensyn/rl_swarm/modal-login/temp-data
+        /home/gensyn/rl_swarm/keys
+        /home/gensyn/rl_swarm/configs
+        /home/gensyn/rl_swarm/logs
+    )
+
+    for volume in ${volumes[@]}; do
+        sudo chown -R 1001:1001 $volume
+    done
 fi
 
 # Will ignore any visible GPUs if set.
@@ -130,11 +138,11 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
         sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
     fi
 
-    yarn install --immutable
-    echo "Building server"
 
     # Docker image already builds it, no need to again.
     if [ -z "$DOCKER" ]; then
+        yarn install --immutable
+        echo "Building server"
         yarn build > "$ROOT/logs/yarn.log" 2>&1
     fi
     yarn start >> "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
@@ -144,10 +152,14 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     sleep 5
 
     # Try to open the URL in the default browser
-    if open http://localhost:3000 2> /dev/null; then
-        echo_green ">> Successfully opened http://localhost:3000 in your default browser."
+    if [ -z "$DOCKER" ]; then
+        if open http://localhost:3000 2> /dev/null; then
+            echo_green ">> Successfully opened http://localhost:3000 in your default browser."
+        else
+            echo ">> Failed to open http://localhost:3000. Please open it manually."
+        fi
     else
-        echo ">> Failed to open http://localhost:3000. Please open it manually."
+        echo_green ">> Please open http://localhost:3000 in your host browser."
     fi
 
     cd ..
@@ -200,13 +212,22 @@ fi
 if [ -f "$ROOT/configs/rg-swarm.yaml" ]; then
     # Use cmp -s for a silent comparison. If different, backup and copy.
     if ! cmp -s "$ROOT/genrl-swarm/recipes/rgym/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"; then
-        echo_green ">> Found differences in rg-swarm.yaml. Backing up existing config."
-        mv "$ROOT/configs/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml.bak"
-        cp "$ROOT/genrl-swarm/recipes/rgym/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
+        if [ -z "$GENSYN_RESET_CONFIG" ]; then
+            echo_green ">> Found differences in rg-swarm.yaml. If you would like to reset to the default, set GENSYN_RESET_CONFIG to a non-empty value."
+        else
+            echo_green ">> Found differences in rg-swarm.yaml. Backing up existing config."
+            mv "$ROOT/configs/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml.bak"
+            cp "$ROOT/genrl-swarm/recipes/rgym/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
+        fi
     fi
 else
     # If the config doesn't exist, just copy it.
     cp "$ROOT/genrl-swarm/recipes/rgym/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
+fi
+
+if [ -n "$DOCKER" ]; then
+    # Make it easier to edit the configs on Linux systems.
+    sudo chmod -R 0777 /home/gensyn/rl_swarm/configs
 fi
 
 echo_green ">> Done!"
