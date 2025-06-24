@@ -51,18 +51,6 @@ source .venv/bin/activate
 ./run_rl_swarm.sh
 ```
 
-### Testnet participation
-
-Please answer 'Y' (or just press enter), N is provided as an alternative flow but isn't currently maintained.
-
-### Select your Swarm
-
-To select your swarm, answer 'B' to join the Math Hard (DAPO-Math 17K dataset) or 'S' to join the Math (GSM8K dataset). 
-
-### Select your Model
-
-To select your model, answer '0.5', '1.5', '7', '32', or '72' to pick the parameter count. 
-
 ### Login
 
 1. A browser window will pop open (you'll need to manually navigate to http://localhost:3000/ if you're on a VM).
