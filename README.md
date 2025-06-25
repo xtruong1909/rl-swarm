@@ -1,6 +1,6 @@
 # RL Swarm
 
-RL Swarm is a peer-to-peer system for reinforcement learning. It allows you to train a model collaboratively with other models in the swarm, leveraging their collective intelligence. It is open source and permissionless, meaning you can run it on a consumer laptop at home or on a powerful GPU in the cloud. You can also connect your model to the Gensyn Testnet, to receive an on-chain identity that tracks your progress over time.
+RL Swarm is a peer-to-peer system for reinforcement learning. It allows you to train models collaboratively with others in the swarm, leveraging their collective intelligence. It is open source and permissionless, meaning you can run it on a consumer laptop at home or on a powerful GPU in the cloud. You can also connect your model to the Gensyn Testnet to receive an on-chain identity that tracks your progress over time.
 
 Currently, we are running the [reasoning-gym](https://github.com/open-thought/reasoning-gym/tree/main) swarm on the Testnet. This swarm is designed to train models to solve a diverse set of reasoning tasks using the reasoning-gym dataset. The current list of default models includes:
 
@@ -11,11 +11,11 @@ Models:
    - dnotitia/Smoothie-Qwen3-1.7B
    - Gensyn/Qwen2.5-1.5B-Instruct
 
-This iteration of rl-swarm is powered by the [GenRL-Swarm](https://github.com/gensyn-ai/genrl-swarm) library.  It is a fully composible framework for decentralized reinforcement learning which enables users to create and customize their own swarms for reinforcement learning with multi-agent multi-stage environments.
+This iteration of rl-swarm is powered by the [GenRL-Swarm](https://github.com/gensyn-ai/genrl-swarm) library.  It is a fully composable framework for decentralized reinforcement learning which enables users to create and customize their own swarms for reinforcement learning with multi-agent multi-stage environments.
 
 ## Requirements
 
-Your hardware requirements will vary depending on a number of factors including model size and the accelerator platform you use.  Users running large Nvidia GPU will be assigned a model from the large model pool, while users running less powerful hardware will be assigned a model from the small model pool. This design decision is intended to allow users to advance at a similar rate regardless of the hardware they use, maximizing their utility to the swarm.      
+Your hardware requirements will vary depending on a number of factors including model size and the accelerator platform you use.  Users running large NVIDIA GPU will be assigned a model from the large model pool, while users running less powerful hardware will be assigned a model from the small model pool. This design decision is intended to allow users to advance at a similar rate regardless of the hardware they use, maximizing their utility to the swarm.      
 
 **Supported Hardware**
 
@@ -43,13 +43,47 @@ If you encounter issues, please first check [Troubleshooting](#troubleshooting).
 
 ## Instructions
 
-### Run the swarm
+### Run the Swarm
 
+The easiest way to run RL Swarm is using Docker. This ensures a consistent setup across all operating systems with minimal dependencies.
+
+#### 1. Clone this repo
+
+```sh
+git clone https://github.com/gensyn-ai/rl-swarm
+```
+
+#### 2. Install Docker
+
+Make sure you have Docker installed and the Docker daemon is running on your machine. To do that, follow [these instructions](https://docs.docker.com/get-started/get-docker/) according to your OS.
+
+#### 3. Start the Swarm
+
+Run the following commands from the root of the repository.
+
+##### CPU support
+
+ If you’re using a Mac or if your machine has CPU-only support:
+```sh
+docker-compose run --rm --build -Pit swarm-cpu
+```
+
+##### GPU support
+
+If you're using a machine with an officially supported GPU:
+```sh
+docker-compose run --rm --build -Pit swarm-gpu
+```
+
+### Experimental (advanced) mode
+
+If you want to experiment with the [GenRL-Swarm](https://github.com/gensyn-ai/genrl-swarm) library and its [configurable parameters](https://github.com/gensyn-ai/genrl-swarm/blob/main/recipes/rgym/rg-swarm.yaml), we recommend you run RL Swarm via shell script:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
 ./run_rl_swarm.sh
-```
+```  
+To learn more about experimental mode, check out our [getting started guide](https://github.com/gensyn-ai/genrl-swarm/getting_started.ipynb).
 
 ### Login
 
