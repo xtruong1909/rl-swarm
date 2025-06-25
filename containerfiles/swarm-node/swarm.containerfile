@@ -53,9 +53,7 @@ ENV PATH="/home/gensyn/.pyenv/shims:/home/gensyn/.pyenv/bin:$NVM_DIR/versions/no
 COPY --chown=gensyn ./modal-login /home/gensyn/rl_swarm/modal-login
 RUN cd /home/gensyn/rl_swarm/modal-login && yarn install --immutable && yarn build
 
-# REMOVEME: Need to have cloned genrl-swarm first. Can do it as part of the image build once
-# it's public.
-COPY --chown=gensyn ./genrl-swarm /home/gensyn/rl_swarm/genrl-swarm
+RUN git clone --depth=1 --branch v0.1.0 https://github.com/gensyn-ai/genrl-swarm.git /home/gensyn/rl_swarm/genrl-swarm
 
 WORKDIR /home/gensyn/rl_swarm
 ENV DOCKER=t

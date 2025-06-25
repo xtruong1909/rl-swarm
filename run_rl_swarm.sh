@@ -193,7 +193,7 @@ pip install --upgrade pip
 # Clone GenRL repository to user's working directory
 echo_green ">> Initializing and updating GenRL..."
 if [ ! -d "$ROOT/genrl-swarm" ]; then
-    git clone git@github.com:gensyn-ai/genrl-swarm.git "$ROOT/genrl-swarm"
+    git clone --depth=1 --branch v0.1.0 https://github.com/gensyn-ai/genrl-swarm.git "$ROOT/genrl-swarm"
 fi
 
 echo_green ">> Installing GenRL."
