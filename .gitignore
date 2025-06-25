@@ -25,4 +25,5 @@ MODULE.bazel.lock
 .tmux.conf
 
 user/
+configs/
 genrl-swarm/
