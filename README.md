@@ -83,7 +83,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 ./run_rl_swarm.sh
 ```  
-To learn more about experimental mode, check out our [getting started guide](https://github.com/gensyn-ai/genrl-swarm/getting_started.ipynb).
+To learn more about experimental mode, check out our [getting started guide](https://github.com/gensyn-ai/genrl-swarm/blob/main/getting_started.ipynb).
 
 ### Login
 
