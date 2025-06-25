@@ -75,6 +75,10 @@ If you're using a machine with an officially supported GPU:
 docker-compose run --rm --build -Pit swarm-gpu
 ```
 
+##### Docker compose issue
+
+If `docker-compose` does not work when running the above commands, please try `docker compose` (no hyphen) instead. I.e. ` docker compose run --rm --build -Pit swarm-gpu`. This issue sometimes occurs on users running Ubuntu.
+
 ### Experimental (advanced) mode
 
 If you want to experiment with the [GenRL-Swarm](https://github.com/gensyn-ai/genrl-swarm) library and its [configurable parameters](https://github.com/gensyn-ai/genrl-swarm/blob/main/recipes/rgym/rg-swarm.yaml), we recommend you run RL Swarm via shell script:
