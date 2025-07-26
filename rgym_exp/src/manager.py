@@ -123,7 +123,12 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
         return rewards_by_agent
 
     def _get_my_rewards(self, signal_by_agent):
-        my_signal = signal_by_agent[self.peer_id]
+        if len(signal_by_agent) == 0:
+            return 0
+        if self.peer_id in signal_by_agent:
+            my_signal = signal_by_agent[self.peer_id]
+        else:
+            my_signal = 0
         my_signal = (my_signal + 1) * (my_signal > 0) + my_signal * (
             my_signal <= 0
         )
@@ -136,7 +141,11 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                 self.state.round, 0, int(self.batched_signals), self.peer_id
             )
             self.batched_signals = 0.0
-            max_agent, max_signal = max(signal_by_agent.items(), key=lambda x: x[1])
+            if len(signal_by_agent) > 0:
+                max_agent, max_signal = max(signal_by_agent.items(), key=lambda x: x[1])
+            else: # if we have no signal_by_agents, just submit ourselves.
+                max_agent = self.peer_id
+
             self.coordinator.submit_winners(self.state.round, [max_agent], self.peer_id)
             self.time_since_submit = time.time()
             self.submitted_this_round = True
