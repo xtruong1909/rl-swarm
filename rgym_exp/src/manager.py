@@ -83,17 +83,7 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
         # enable push to HF if token was provided
         self.hf_token = hf_token
         if self.hf_token not in [None, "None"]:
-            username = whoami(token=self.hf_token)["name"]
-            model_name = self.trainer.model.config.name_or_path.split("/")[-1]
-            model_name += "-Gensyn-Swarm"
-            model_name += f"-{self.animal_name}"
-            self.trainer.args.hub_model_id = f"{username}/{model_name}"
-            self.trainer.args.push_to_hub = True
-            self.trainer.args.hub_token = self.hf_token
-            self.hf_push_frequency = hf_push_frequency
-            get_logger().info("Logging into Hugging Face Hub...")
-
-            login(self.hf_token)
+            self._configure_hf_hub(hf_push_frequency)
 
         get_logger().info(
             f"🐱 Hello 🐈 [{get_name_from_peer_id(self.peer_id)}] 🦮 [{self.peer_id}]!"
@@ -183,6 +173,16 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
     def _hook_after_game(self):
         self._save_to_hf()
 
+    def _configure_hf_hub(self, hf_push_frequency):
+        username = whoami(token=self.hf_token)["name"]
+        model_name = self.trainer.model.config.name_or_path.split("/")[-1]
+        model_name += "-Gensyn-Swarm"
+        model_name += f"-{self.animal_name}"
+        self.trainer.args.hub_model_id = f"{username}/{model_name}"
+        self.hf_push_frequency = hf_push_frequency
+        get_logger().info("Logging into Hugging Face Hub...")
+        login(self.hf_token)
+
     def _save_to_hf(self):
         if (
             self.hf_token not in [None, "None"]
@@ -191,9 +191,6 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
             get_logger().info(f"pushing model to huggingface")
             try:
                 repo_id = self.trainer.args.hub_model_id
-                if repo_id is None:
-                    repo_id = Path(self.trainer.args.output_dir).name
-
                 self.trainer.model.push_to_hub(
                     repo_id=repo_id,
                     token=self.hf_token,
