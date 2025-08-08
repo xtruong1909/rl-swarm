@@ -18,6 +18,7 @@ from genrl.state import GameState
 from genrl.trainer import TrainerModule
 from huggingface_hub import login, whoami
 
+from rgym_exp.src.coordinator import PRGCoordinator
 from rgym_exp.src.utils.name_utils import get_name_from_peer_id
 
 
@@ -76,6 +77,7 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
         self.coordinator.register_peer(self.peer_id)
         round, _ = self.coordinator.get_round_and_stage()
         self.state.round = round
+
         self.communication.step_ = (
             self.state.round
         )  # initialize communication module to contract's round
@@ -95,9 +97,33 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
             f.write(get_system_info())
 
         self.batched_signals = 0.0
-        self.time_since_submit = time.time() #seconds
-        self.submit_period = 3.0 #hours
+        self.time_since_submit = time.time()  # seconds
+        self.submit_period = 3.0  # hours
         self.submitted_this_round = False
+
+        # PRG Game
+        self.prg_game = False
+        prg_game_config = kwargs.get("prg_game_config", None)
+        if prg_game_config:
+            self.prg_game = prg_game_config.get("prg_game", False)
+            if self.prg_game:
+                modal_proxy_url = prg_game_config.get("modal_proxy_url", None)
+                org_id = prg_game_config.get("org_id", None)
+                if (
+                    not modal_proxy_url
+                    or not org_id
+                ):
+                    self.prg_game = False
+                    get_logger().debug(
+                        "PRG game disabled due to missing configuration."
+                    )
+                else:
+                    self.prg_coordinator = PRGCoordinator(
+                        org_id,
+                        modal_proxy_url,
+                    )
+                    self.prg_history_dict = {}
+                    self.prg_last_game_id = None
 
     def _get_total_rewards_by_agent(self):
         rewards_by_agent = defaultdict(int)
@@ -119,9 +145,7 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
             my_signal = signal_by_agent[self.peer_id]
         else:
             my_signal = 0
-        my_signal = (my_signal + 1) * (my_signal > 0) + my_signal * (
-            my_signal <= 0
-        )
+        my_signal = (my_signal + 1) * (my_signal > 0) + my_signal * (my_signal <= 0)
         return my_signal
 
     def _try_submit_to_chain(self, signal_by_agent):
@@ -133,15 +157,19 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                 )
                 self.batched_signals = 0.0
                 if len(signal_by_agent) > 0:
-                    max_agent, max_signal = max(signal_by_agent.items(), key=lambda x: x[1])
-                else: # if we have no signal_by_agents, just submit ourselves.
+                    max_agent, max_signal = max(
+                        signal_by_agent.items(), key=lambda x: x[1]
+                    )
+                else:  # if we have no signal_by_agents, just submit ourselves.
                     max_agent = self.peer_id
 
-                self.coordinator.submit_winners(self.state.round, [max_agent], self.peer_id)
+                self.coordinator.submit_winners(
+                    self.state.round, [max_agent], self.peer_id
+                )
                 self.time_since_submit = time.time()
                 self.submitted_this_round = True
             except Exception as e:
-                get_logger().exception(
+                get_logger().debug(
                     "Failed to submit to chain.\n"
                     "This is most likely transient and will recover.\n"
                     "There is no need to kill the program.\n"
@@ -150,20 +178,64 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                     "including the full stacktrace."
                 )
 
-
     def _hook_after_rewards_updated(self):
         signal_by_agent = self._get_total_rewards_by_agent()
         self.batched_signals += self._get_my_rewards(signal_by_agent)
         self._try_submit_to_chain(signal_by_agent)
 
     def _hook_after_round_advanced(self):
+        if self.prg_game:
+            # TODO: Ideally I think the judge client request question bit should come in the manager and the trainer should be doing only PyTorch-y stuff, 
+            # but I have kept it consistent with the evaluate function for now.
+            # TODO: Can change mechanism to play game here
+
+            results_dict = self.trainer.play_prg_game_logits(self.prg_history_dict)
+
+            # This block will only be activate when we get a new clue
+            if results_dict:
+                if results_dict['choice_idx'] >= 0:
+                    try:
+                        # TODO: This says we have seen a clue only if we make a valid guess
+                        self.prg_history_dict[results_dict["game_idx"]] = results_dict["clue_idx"]
+                        token_balance = self.prg_coordinator.bet_token_balance(self.peer_id)
+                        rounds_remaining = max(1, results_dict['rounds_remaining'])
+                        bet_amt = token_balance // rounds_remaining
+                        if bet_amt > 0:
+                            self.prg_coordinator.guess_answer(results_dict['game_idx'], self.peer_id, results_dict['clue_idx'], results_dict['choice_idx'], bet_amt)
+                    except Exception as e:
+                        get_logger().debug(
+                            "Failed to submit guess to chain.\n"
+                            "This is most likely transient and will recover.\n"
+                            "There is no need to kill the program.\n"
+                            "If you encounter this error, please report it to Gensyn by\n"
+                            "filing a github issue here: https://github.com/gensyn-ai/rl-swarm/issues/ \n"
+                            "including the full stacktrace."
+                        )
+
+                if self.prg_last_game_id is not None and results_dict["game_idx"] != self.prg_last_game_id:
+                    # TODO: This exception block is not hit when we get a 500 error from chain though?
+                    try:
+                        self.prg_coordinator.claim_reward(self.prg_last_game_id, self.peer_id)
+                        self.prg_last_game_id = results_dict["game_idx"]
+                    except Exception as e:
+                        get_logger().debug(
+                            "Failed to claim rewards on chain.\n"
+                            "This is most likely transient and will recover.\n"
+                            "There is no need to kill the program.\n"
+                            "If you encounter this error, please report it to Gensyn by\n"
+                            "filing a github issue here: https://github.com/gensyn-ai/rl-swarm/issues/ \n"
+                            "including the full stacktrace."
+                        )
+
+
+
         self._save_to_hf()
 
         # Try to submit to chain again if necessary, but don't update our signal twice
         if not self.submitted_this_round:
             signal_by_agent = self._get_total_rewards_by_agent()
             self._try_submit_to_chain(signal_by_agent)
-        
+
         # Reset flag for next round
         self.submitted_this_round = False
 
@@ -191,6 +263,7 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
             get_logger().info(f"pushing model to huggingface")
             try:
                 repo_id = self.trainer.args.hub_model_id
+
                 self.trainer.model.push_to_hub(
                     repo_id=repo_id,
                     token=self.hf_token,

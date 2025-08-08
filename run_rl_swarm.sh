@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT=$PWD
 
 # GenRL Swarm version to use
-GENRL_TAG="v0.1.1"
+GENRL_TAG="v0.1.5"
 
 export IDENTITY_PATH
 export GENSYN_RESET_CONFIG
@@ -14,6 +14,7 @@ export CONNECT_TO_TESTNET=true
 export ORG_ID
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
 export SWARM_CONTRACT="0xFaD7C5e93f28257429569B854151A1B8DCD404c2"
+export PRG_CONTRACT='0x1' #todo update this
 export HUGGINGFACE_ACCESS_TOKEN="None"
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
@@ -135,10 +136,13 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     ENV_FILE="$ROOT"/modal-login/.env
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS version
-        sed -i '' "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        sed -i '' "3s/.*/SWARM_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        sed -i '' "4s/.*/PRG_CONTRACT_ADDRESS=$PRG_CONTRACT/" "$ENV_FILE"
+
     else
         # Linux version
-        sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        sed -i "3s/.*/SWARM_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        sed -i "4s/.*/PRG_CONTRACT_ADDRESS=$PRG_CONTRACT/" "$ENV_FILE"
     fi
 
 
@@ -193,10 +197,9 @@ fi
 echo_green ">> Getting requirements..."
 pip install --upgrade pip
 
-# echo_green ">> Installing GenRL..."
-pip install gensyn-genrl==0.1.4
+ echo_green ">> Installing GenRL..."
+pip install gensyn-genrl==${GENRL_TAG}
 pip install reasoning-gym>=0.1.20 # for reasoning gym env
-pip install trl # for grpo config, will be deprecated soon
 pip install hivemind@git+https://github.com/gensyn-ai/hivemind@639c964a8019de63135a2594663b5bec8e5356dd # We need the latest, 1.1.11 is broken
 
 
@@ -253,6 +256,16 @@ else
     echo_green ">> Using default model from config"
 fi
 
+echo -en $GREEN_TEXT
+read -p ">> Would you like your model to participate in the AI Prediction Market? [y/N] " yn
+if [ "$yn" = "y" ] || [ "$yn" = "Y" ]; then
+    export PRG_GAME=true
+    echo_green ">> Playing PRG game: true"
+else
+    echo_green ">> Playing PRG game: false"
+fi
+
+echo -en $RESET_TEXT
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
 
