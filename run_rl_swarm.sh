@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT=$PWD
 
 # GenRL Swarm version to use
-GENRL_TAG="v0.1.5"
+GENRL_TAG="0.1.6"
 
 export IDENTITY_PATH
 export GENSYN_RESET_CONFIG
