@@ -20,7 +20,7 @@ from huggingface_hub import login, whoami
 
 from rgym_exp.src.coordinator import PRGCoordinator
 from rgym_exp.src.utils.name_utils import get_name_from_peer_id
-
+from rgym_exp.src.trainer import PRGGameStatus
 
 class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
     """GameManager that orchestrates a game using a SwarmCoordinator."""
@@ -123,7 +123,8 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                         modal_proxy_url,
                     )
                     self.prg_history_dict = {}
-                    self.prg_last_game_id = None
+                    self.prg_last_game_claimed = None
+                    self.prg_last_game_played = None
 
     def _get_total_rewards_by_agent(self):
         rewards_by_agent = defaultdict(int)
@@ -169,14 +170,7 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                 self.time_since_submit = time.time()
                 self.submitted_this_round = True
             except Exception as e:
-                get_logger().debug(
-                    "Failed to submit to chain.\n"
-                    "This is most likely transient and will recover.\n"
-                    "There is no need to kill the program.\n"
-                    "If you encounter this error, please report it to Gensyn by\n"
-                    "filing a github issue here: https://github.com/gensyn-ai/rl-swarm/issues/ \n"
-                    "including the full stacktrace."
-                )
+                get_logger().debug(str(e))
 
     def _hook_after_rewards_updated(self):
         signal_by_agent = self._get_total_rewards_by_agent()
@@ -187,47 +181,44 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
         if self.prg_game:
             # TODO: Ideally I think the judge client request question bit should come in the manager and the trainer should be doing only PyTorch-y stuff, 
             # but I have kept it consistent with the evaluate function for now.
-            # TODO: Can change mechanism to play game here
-
             results_dict = self.trainer.play_prg_game_logits(self.prg_history_dict)
-
-            # This block will only be activate when we get a new clue
-            if results_dict:
-                if results_dict['choice_idx'] >= 0:
+            status = results_dict.get('status', PRGGameStatus.ERROR)
+            if status == PRGGameStatus.SUCCESS:
+                if results_dict.get('choice_idx', -1) >= 0:
+                    current_game = results_dict['game_idx']
                     try:
-                        # TODO: This says we have seen a clue only if we make a valid guess
-                        self.prg_history_dict[results_dict["game_idx"]] = results_dict["clue_idx"]
                         token_balance = self.prg_coordinator.bet_token_balance(self.peer_id)
                         rounds_remaining = max(1, results_dict['rounds_remaining'])
                         bet_amt = token_balance // rounds_remaining
+
                         if bet_amt > 0:
-                            self.prg_coordinator.guess_answer(results_dict['game_idx'], self.peer_id, results_dict['clue_idx'], results_dict['choice_idx'], bet_amt)
+                            self.prg_coordinator.guess_answer(current_game, self.peer_id, results_dict['clue_idx'], results_dict['choice_idx'], bet_amt)
+                        # only update if we successfully played this round
+                        self.prg_history_dict[current_game] = results_dict["clue_idx"]
                     except Exception as e:
-                        get_logger().debug(
-                            "Failed to submit guess to chain.\n"
-                            "This is most likely transient and will recover.\n"
-                            "There is no need to kill the program.\n"
-                            "If you encounter this error, please report it to Gensyn by\n"
-                            "filing a github issue here: https://github.com/gensyn-ai/rl-swarm/issues/ \n"
-                            "including the full stacktrace."
-                        )
+                        get_logger().debug(str(e))
 
-                if self.prg_last_game_id is not None and results_dict["game_idx"] != self.prg_last_game_id:
-                    # TODO: This exception block is not hit when we get a 500 error from chain though?
+                    # new game has started, claim rewards for previous game.
+                    if self.prg_last_game_played and current_game != self.prg_last_game_played:
+                        try:
+                            self.prg_coordinator.claim_reward(self.prg_last_game_played, self.peer_id)
+                            self.prg_last_game_claimed = self.prg_last_game_played
+                        except Exception as e:
+                            get_logger().debug(str(e))
+                    
+                    self.prg_last_game_played = current_game
+
+
+            # Game Finished, claim rewards for previous game
+            elif status == PRGGameStatus.NO_ACTIVE_GAME:
+                # at somepoint we have made a bet but we never claimed the reward
+                if self.prg_last_game_played and self.prg_last_game_played != self.prg_last_game_claimed:
                     try:
-                        self.prg_coordinator.claim_reward(self.prg_last_game_id, self.peer_id)
-                        self.prg_last_game_id = results_dict["game_idx"]
+                        self.prg_coordinator.claim_reward(self.prg_last_game_played, self.peer_id)
+                        self.prg_last_game_claimed = self.prg_last_game_played
+                        self.prg_last_game_played = None
                     except Exception as e:
-                        get_logger().debug(
-                            "Failed to claim rewards on chain.\n"
-                            "This is most likely transient and will recover.\n"
-                            "There is no need to kill the program.\n"
-                            "If you encounter this error, please report it to Gensyn by\n"
-                            "filing a github issue here: https://github.com/gensyn-ai/rl-swarm/issues/ \n"
-                            "including the full stacktrace."
-                        )
-
-
+                        get_logger().debug(str(e))
 
         self._save_to_hf()
 

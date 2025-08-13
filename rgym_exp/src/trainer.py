@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, Optional, List
 
 import torch
@@ -22,6 +23,13 @@ Your answer MUST be one of the possible answers. Give your answer in the followi
 <answer>answer here</answer>
 Do not explain your reasoning at all, provide only the final answer in the answer tag.
 """
+
+class PRGGameStatus(Enum):
+    ERROR = 'Error'
+    NO_ACTIVE_GAME = 'No active game'
+    ALREADY_ANSWERED = 'Already answered'
+    SUCCESS = 'Success'
+
 class GRPOTrainerModule(GRPOLanguageTrainerModule, LoggerMixin):
     """
     Trainer for the Group Relative Policy Optimization (GRPO) method.
@@ -88,138 +96,18 @@ class GRPOTrainerModule(GRPOLanguageTrainerModule, LoggerMixin):
             user_answer=answer
         )
 
-
-    @torch.no_grad()
-    def play_prg_game_generation(
-        self, prg_history_dict: dict
-    ) -> dict:
-        if not self.judge_client:
-            return {}
-
-        # Get current clue from judge service
-        game_clue_dict = self.judge_client.get_current_clue()
-
-        if not isinstance(game_clue_dict, dict):
-            return {}
-        
-        # If no clue or game_id or clue_id is -1, or if we have seen this clue before, take no action
-        game_id = game_clue_dict.get("game_id", -1)
-        clue_id = game_clue_dict.get("clue_id", -1)
-        rounds_remaining = game_clue_dict.get("rounds_remaining", -1)
-        clue = game_clue_dict.get("clue") or ""
-        choices = game_clue_dict.get("choices") or []
-
-        # No active game
-        if any(val < 0 for val in (game_id, clue_id, rounds_remaining)):
-            return {}
-        # We have already answered this clue
-        if game_id in prg_history_dict and clue_id <= prg_history_dict[game_id]:
-            return {}
-        # Malformed input
-        if not clue or not isinstance(choices, list) or not choices:
-            return {}
-        
-        get_logger().info(f"New clue received for PRG: {game_clue_dict}")
-
-        try:
-            choices_str = ", ".join(choices)
-            custom_prompt = f"{clue}\nPossible Answers: {choices_str}\nAnswer:"
-            
-            # Generate answer using the model with custom prompt
-            prompt = [
-                {"role": "system", "content": PRG_SYSTEM_PROMPT},
-                {"role": "user", "content": custom_prompt},
-            ]
-
-            input_ids = self.processing_class.apply_chat_template(
-                prompt,
-                tokenize=True,
-                add_generation_prompt=True,
-                return_tensors="pt",
-            )
-
-            # TODO: Make the dtype changes from genrl here?
-            input_ids = input_ids.to(self.model.device)
-
-            outputs = self.model.generate(input_ids, generation_config=self.generation_config)
-            generated_text = self.processing_class.decode(
-                outputs[0][input_ids.shape[-1]:], skip_special_tokens=True
-            )
-            
-            # Extract answer from the generated text
-            extracted_answer = self._extract_answer_from_generation(generated_text)
-
-            # Validate that the extracted answer is one of the valid choices
-            choice_idx = self._get_choice_index(extracted_answer, choices)
-            return {
-                "game_idx": game_id,
-                "clue_idx": clue_id,
-                "choice_idx": choice_idx,
-                "rounds_remaining": rounds_remaining,
-            }
-        
-        except Exception as e:
-            get_logger().info(f"Error while generating response for PRG: {e}")
-            return {}
-
-
-    def _extract_answer_from_generation(self, generated_text: str) -> Optional[str]:
-        """
-        Extract the answer from the generated text based on the PRG prompt format.
-        The answer should be enclosed in <answer> tags.
-        
-        Args:
-            generated_text: The full generated text from the model
-            
-        Returns:
-            The extracted answer string, or None if no valid answer found
-        """
-        import re
-        
-        # Look for answer in <answer> tags
-        answer_match = re.search(r'<answer>(.*?)</answer>', generated_text, re.DOTALL | re.IGNORECASE)
-        if answer_match:
-            return answer_match.group(1).strip()
-        
-        return None
-
-    def _get_choice_index(self, answer: Optional[str], choices: List[str]) -> int:
-        """
-        Check if the extracted answer matches one of the valid choices.
-        Performs case-insensitive comparison and handles minor variations.
-        
-        Args:
-            answer: The extracted answer string
-            choices: List of valid choice strings
-            
-        Returns:
-            Choice index if the answer matches a valid choice, -1 otherwise
-        """
-        if not answer:
-            return -1
-            
-        answer_clean = answer.strip().lower()
-        
-        for choice_idx, choice in enumerate(choices):
-            choice_clean = choice.strip().lower()
-            if answer_clean == choice_clean:
-                return choice_idx
-                
-        return -1
-
-
     @torch.no_grad()
     def play_prg_game_logits(
         self, prg_history_dict: dict
     ) -> dict:
         if not self.judge_client:
-            return {}
+            return {'status': PRGGameStatus.ERROR}
 
         # Get current clue from judge service
         game_clue_dict = self.judge_client.get_current_clue()
         
         if not isinstance(game_clue_dict, dict):
-            return {}
+            return {'status': PRGGameStatus.ERROR}
         
         # If no clue or game_id or clue_id is -1, take no action
         game_id = game_clue_dict.get("game_id", -1)
@@ -230,13 +118,13 @@ class GRPOTrainerModule(GRPOLanguageTrainerModule, LoggerMixin):
         
         # No active game
         if any(val < 0 for val in (game_id, clue_id, rounds_remaining)):
-            return {}
+            return {'status': PRGGameStatus.NO_ACTIVE_GAME}
         # We have already answered this clue
         if game_id in prg_history_dict and clue_id <= prg_history_dict[game_id]:
-            return {}
+            return {'status': PRGGameStatus.ALREADY_ANSWERED}
         # malformed input
         if not clue or not isinstance(choices, list) or not choices:
-            return {}
+            return {'status': PRGGameStatus.ERROR}
         
         get_logger().info(f"New clue received for PRG: {game_clue_dict}")
 
@@ -269,11 +157,12 @@ class GRPOTrainerModule(GRPOLanguageTrainerModule, LoggerMixin):
                 "clue_idx": clue_id,
                 "choice_idx": choice_idx,
                 "rounds_remaining": rounds_remaining,
+                "status": PRGGameStatus.SUCCESS
             }
 
         except Exception as e:
             get_logger().info(f"Error while computing logits for choices: {e}")
-            return {}
+            return {'status': PRGGameStatus.ERROR}
 
     def _get_choice_logits(self, input_ids: torch.Tensor, choices: List[str]) -> torch.Tensor:
         """
