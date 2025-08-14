@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         address: process.env.PRG_CONTRACT_ADDRESS,
       },
     });
-
+    console.log('Guess answer response: ', userOperationResponse);
     return userOperationResponse;
   } catch (err) {
     console.error(err);

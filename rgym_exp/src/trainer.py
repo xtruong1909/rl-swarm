@@ -156,6 +156,7 @@ class GRPOTrainerModule(GRPOLanguageTrainerModule, LoggerMixin):
                 "game_idx": game_id,
                 "clue_idx": clue_id,
                 "choice_idx": choice_idx,
+                "choice": choices[choice_idx],
                 "rounds_remaining": rounds_remaining,
                 "status": PRGGameStatus.SUCCESS
             }

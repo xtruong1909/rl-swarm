@@ -132,10 +132,7 @@ class PRGCoordinator:
                 },
             )
         except requests.exceptions.HTTPError as e:
-            if e.response is None or e.response.status_code != 500:
-                raise
-
-            get_logger().debug("Unknown error calling submit-guess endpoint! Continuing.")
+            raise
 
     def claim_reward(
         self, game_id: int, peer_id: str
@@ -148,7 +145,4 @@ class PRGCoordinator:
                 {"gameId": game_id, "peerId": peer_id},
             )
         except requests.exceptions.HTTPError as e:
-            if e.response is None or e.response.status_code != 500:
-                raise
-
-            get_logger().debug("Unknown error calling claim-reward endpoint! Continuing.")
+            raise

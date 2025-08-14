@@ -125,6 +125,7 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                     self.prg_history_dict = {}
                     self.prg_last_game_claimed = None
                     self.prg_last_game_played = None
+                    self.prg_record = log_dir + '/prg_record.txt'
 
     def _get_total_rewards_by_agent(self):
         rewards_by_agent = defaultdict(int)
@@ -195,6 +196,10 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                             self.prg_coordinator.guess_answer(current_game, self.peer_id, results_dict['clue_idx'], results_dict['choice_idx'], bet_amt)
                         # only update if we successfully played this round
                         self.prg_history_dict[current_game] = results_dict["clue_idx"]
+                        log_str = f'Game {current_game} Round {results_dict["clue_idx"]}: Agent {self.peer_id} placed bet of {bet_amt / 1e18:.2f} tokens on choice - {results_dict["choice"]}\n'
+                        get_logger().info(log_str)
+                        with open(self.prg_record, 'a') as f:
+                            f.write(log_str)
                     except Exception as e:
                         get_logger().debug(str(e))
 
@@ -202,6 +207,10 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                     if self.prg_last_game_played and current_game != self.prg_last_game_played:
                         try:
                             self.prg_coordinator.claim_reward(self.prg_last_game_played, self.peer_id)
+                            get_logger().info(f'successfully claimed reward for previous game {self.prg_last_game_played}')
+                            with open(self.prg_record, 'a') as f:
+                                f.write(f'successfully claimed reward for previous game {self.prg_last_game_played}\n')
+                            # only update if we successfully claimed the reward
                             self.prg_last_game_claimed = self.prg_last_game_played
                         except Exception as e:
                             get_logger().debug(str(e))
@@ -215,6 +224,10 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
                 if self.prg_last_game_played and self.prg_last_game_played != self.prg_last_game_claimed:
                     try:
                         self.prg_coordinator.claim_reward(self.prg_last_game_played, self.peer_id)
+                        get_logger().info(f'successfully claimed reward for previous game {self.prg_last_game_played}')
+                        with open(self.prg_record, 'a') as f:
+                            f.write(f'successfully claimed reward for previous game {self.prg_last_game_played}\n')
+                        # only update if we successfully claimed the reward
                         self.prg_last_game_claimed = self.prg_last_game_played
                         self.prg_last_game_played = None
                     except Exception as e:

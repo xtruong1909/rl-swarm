@@ -22,7 +22,7 @@ blockchain:
   swarm_coordinator_abi_path: "rgym_exp/contracts/SwarmCoordinator_0.4.2.json"
 
 eval:
-  judge_base_url: https://swarm-judge-102957787771.us-east1.run.app
+  judge_base_url: "https://swarm-judge.internal-apps-central1.clusters.gensyn.ai"
 
 prg_game_config:
   prg_game: ${oc.env:PRG_GAME,null}
