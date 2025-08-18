@@ -1,8 +1,6 @@
-from enum import Enum
 from typing import Any, Optional, List
 
 import torch
-import torch.utils.data
 from genrl.data import DataManager
 from genrl.logging_utils.global_defs import get_logger
 from genrl.logging_utils.ml_logger import LoggerMixin
@@ -11,6 +9,8 @@ from genrl.state import GameState
 from genrl.trainer.grpo_trainer import GRPOLanguageTrainerModule
 from reasoning_gym.utils import SYSTEM_PROMPTS
 from rgym_exp.src.utils.judge_client import JudgeClient
+from rgym_exp.src.prg_module import PRGGameStatus
+
 
 PRG_SYSTEM_PROMPT = """Given a question, hints, and possible answers, your task is to answer the question by thinking step-by-step in a clear and specific manner for 1 line only.
 Your answer MUST be one of the possible answers. Provide the answer in the following format:
@@ -24,11 +24,7 @@ Your answer MUST be one of the possible answers. Give your answer in the followi
 Do not explain your reasoning at all, provide only the final answer in the answer tag.
 """
 
-class PRGGameStatus(Enum):
-    ERROR = 'Error'
-    NO_ACTIVE_GAME = 'No active game'
-    ALREADY_ANSWERED = 'Already answered'
-    SUCCESS = 'Success'
+
 
 class GRPOTrainerModule(GRPOLanguageTrainerModule, LoggerMixin):
     """

@@ -18,9 +18,9 @@ from genrl.state import GameState
 from genrl.trainer import TrainerModule
 from huggingface_hub import login, whoami
 
-from rgym_exp.src.coordinator import PRGCoordinator
 from rgym_exp.src.utils.name_utils import get_name_from_peer_id
-from rgym_exp.src.trainer import PRGGameStatus
+from rgym_exp.src.prg_module import PRGModule
+
 
 class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
     """GameManager that orchestrates a game using a SwarmCoordinator."""
@@ -102,30 +102,8 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
         self.submitted_this_round = False
 
         # PRG Game
-        self.prg_game = False
-        prg_game_config = kwargs.get("prg_game_config", None)
-        if prg_game_config:
-            self.prg_game = prg_game_config.get("prg_game", False)
-            if self.prg_game:
-                modal_proxy_url = prg_game_config.get("modal_proxy_url", None)
-                org_id = prg_game_config.get("org_id", None)
-                if (
-                    not modal_proxy_url
-                    or not org_id
-                ):
-                    self.prg_game = False
-                    get_logger().debug(
-                        "PRG game disabled due to missing configuration."
-                    )
-                else:
-                    self.prg_coordinator = PRGCoordinator(
-                        org_id,
-                        modal_proxy_url,
-                    )
-                    self.prg_history_dict = {}
-                    self.prg_last_game_claimed = None
-                    self.prg_last_game_played = None
-                    self.prg_record = log_dir + '/prg_record.txt'
+        self.prg_module = PRGModule(log_dir, **kwargs)
+        self.prg_game = self.prg_module.prg_game
 
     def _get_total_rewards_by_agent(self):
         rewards_by_agent = defaultdict(int)
@@ -182,56 +160,9 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
         if self.prg_game:
             # TODO: Ideally I think the judge client request question bit should come in the manager and the trainer should be doing only PyTorch-y stuff, 
             # but I have kept it consistent with the evaluate function for now.
-            results_dict = self.trainer.play_prg_game_logits(self.prg_history_dict)
-            status = results_dict.get('status', PRGGameStatus.ERROR)
-            if status == PRGGameStatus.SUCCESS:
-                if results_dict.get('choice_idx', -1) >= 0:
-                    current_game = results_dict['game_idx']
-                    try:
-                        token_balance = self.prg_coordinator.bet_token_balance(self.peer_id)
-                        rounds_remaining = max(1, results_dict['rounds_remaining'])
-                        bet_amt = token_balance // rounds_remaining
-
-                        if bet_amt > 0:
-                            self.prg_coordinator.guess_answer(current_game, self.peer_id, results_dict['clue_idx'], results_dict['choice_idx'], bet_amt)
-                        # only update if we successfully played this round
-                        self.prg_history_dict[current_game] = results_dict["clue_idx"]
-                        log_str = f'Game {current_game} Round {results_dict["clue_idx"]}: Agent {self.peer_id} placed bet of {bet_amt / 1e18:.2f} tokens on choice - {results_dict["choice"]}\n'
-                        get_logger().info(log_str)
-                        with open(self.prg_record, 'a') as f:
-                            f.write(log_str)
-                    except Exception as e:
-                        get_logger().debug(str(e))
-
-                    # new game has started, claim rewards for previous game.
-                    if self.prg_last_game_played and current_game != self.prg_last_game_played:
-                        try:
-                            self.prg_coordinator.claim_reward(self.prg_last_game_played, self.peer_id)
-                            get_logger().info(f'successfully claimed reward for previous game {self.prg_last_game_played}')
-                            with open(self.prg_record, 'a') as f:
-                                f.write(f'successfully claimed reward for previous game {self.prg_last_game_played}\n')
-                            # only update if we successfully claimed the reward
-                            self.prg_last_game_claimed = self.prg_last_game_played
-                        except Exception as e:
-                            get_logger().debug(str(e))
-                    
-                    self.prg_last_game_played = current_game
-
-
-            # Game Finished, claim rewards for previous game
-            elif status == PRGGameStatus.NO_ACTIVE_GAME:
-                # at somepoint we have made a bet but we never claimed the reward
-                if self.prg_last_game_played and self.prg_last_game_played != self.prg_last_game_claimed:
-                    try:
-                        self.prg_coordinator.claim_reward(self.prg_last_game_played, self.peer_id)
-                        get_logger().info(f'successfully claimed reward for previous game {self.prg_last_game_played}')
-                        with open(self.prg_record, 'a') as f:
-                            f.write(f'successfully claimed reward for previous game {self.prg_last_game_played}\n')
-                        # only update if we successfully claimed the reward
-                        self.prg_last_game_claimed = self.prg_last_game_played
-                        self.prg_last_game_played = None
-                    except Exception as e:
-                        get_logger().debug(str(e))
+            prg_history_dict = self.prg_module.prg_history_dict
+            results_dict = self.trainer.play_prg_game_logits(prg_history_dict)
+            self.prg_module.play_prg_game(results_dict, self.peer_id)
 
         self._save_to_hf()
 
