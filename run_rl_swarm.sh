@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -14,7 +14,7 @@ export CONNECT_TO_TESTNET=true
 export ORG_ID
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
 export SWARM_CONTRACT="0xFaD7C5e93f28257429569B854151A1B8DCD404c2"
-export PRG_CONTRACT="0x2e0D8cff3A2dC305E7Ee8127Ac084F4D78e262fb"
+export PRG_CONTRACT="0xdA0A7F2c9402C8E79709D7635774A269dABe1192"
 export HUGGINGFACE_ACCESS_TOKEN="None"
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
