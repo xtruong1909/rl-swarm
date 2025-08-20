@@ -55,10 +55,7 @@ class ModalSwarmCoordinator(SwarmCoordinator):
                 },
             )
         except requests.exceptions.HTTPError as e:
-            if e.response is None or e.response.status_code != 500:
-                raise
-
-            get_logger().debug("Unknown error calling submit_reward endpoint! Continuing.")
+            raise
 
     def submit_winners(self, round_num, winners, peer_id):
         try:
@@ -69,10 +66,7 @@ class ModalSwarmCoordinator(SwarmCoordinator):
                 {"roundNumber": round_num, "winners": winners, "peerId": peer_id},
             )
         except requests.exceptions.HTTPError as e:
-            if e.response is None or e.response.status_code != 500:
-                raise
-
-            get_logger().debug("Unknown error calling submit-winner endpoint! Continuing.")
+            raise
 
 
 class PRGCoordinator:
