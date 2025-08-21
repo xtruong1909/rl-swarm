@@ -1,6 +1,4 @@
-import logging
 import os
-import sys
 import time
 from collections import defaultdict
 
@@ -62,15 +60,6 @@ class SwarmGameManager(BaseGameManager, DefaultGameManagerMixin):
         self.peer_id = self.communication.get_id()
         self.state.peer_id = self.peer_id
         self.animal_name = get_name_from_peer_id(self.peer_id, True)
-        format_msg = f"[{self.animal_name}] %(asctime)s %(levelname)s: %(message)s"
-        logging.basicConfig(level=logging.INFO, format=format_msg)
-        formatter = logging.Formatter(format_msg)
-        file_handler = logging.FileHandler(
-            os.path.join(log_dir, f"training_{self.animal_name}.log")
-        )
-        file_handler.setFormatter(formatter)
-        _LOG = get_logger()
-        _LOG.addHandler(file_handler)
 
         # Register peer_id and get current round from the chain
         self.coordinator = coordinator

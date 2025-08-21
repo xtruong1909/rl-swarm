@@ -16,6 +16,7 @@ export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
 export SWARM_CONTRACT="0xFaD7C5e93f28257429569B854151A1B8DCD404c2"
 export PRG_CONTRACT="0x93163d96A0a5BC12de559Af75448311486bE4022"
 export HUGGINGFACE_ACCESS_TOKEN="None"
+export PRG_GAME=true
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
 # Remove this file if you want a new PeerID.
@@ -254,12 +255,12 @@ else
 fi
 
 echo -en $GREEN_TEXT
-read -p ">> Would you like your model to participate in the AI Prediction Market? [y/N] " yn
-if [ "$yn" = "y" ] || [ "$yn" = "Y" ]; then
-    export PRG_GAME=true
-    echo_green ">> Playing PRG game: true"
-else
+read -p ">> Would you like your model to participate in the AI Prediction Market? [Y/n] " yn
+if [ "$yn" = "n" ] || [ "$yn" = "N" ]; then
+    PRG_GAME=false
     echo_green ">> Playing PRG game: false"
+else
+    echo_green ">> Playing PRG game: true"
 fi
 
 echo -en $RESET_TEXT

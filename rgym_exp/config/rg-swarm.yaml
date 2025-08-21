@@ -3,6 +3,12 @@ log_dir: ${oc.env:ROOT,.}/logs
 hydra:
   run:
     dir: ${log_dir}
+  job_logging:
+    handlers:
+      console:
+        level: INFO
+    root:
+      level: DEBUG
 
 training:
   max_round: 1000000

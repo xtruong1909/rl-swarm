@@ -17,7 +17,8 @@ class PRGModule:
         self.prg_state_file = log_dir + '/prg_state.json'
         self._prg_game = False
         if prg_game_config:
-            self._prg_game = prg_game_config.get("prg_game", False)
+            prg_game = prg_game_config.get("prg_game", False)
+            self._prg_game = True if prg_game in [True, 'true'] else False
             if self._prg_game:
                 modal_proxy_url = prg_game_config.get("modal_proxy_url", None)
                 org_id = prg_game_config.get("org_id", None)
