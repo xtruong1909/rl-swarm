@@ -100,12 +100,25 @@ To learn more about experimental mode, check out our [getting started guide](htt
 
 If you would like to upload your model to Hugging Face, enter your Hugging Face access token when prompted. You can generate one from your Hugging Face account, under [Access Tokens](https://huggingface.co/docs/hub/en/security-tokens).
 
+### AI Prediction Market
+
+During setup, you'll be asked if you'd like to participate in the **AI Prediction Market**.
+
+This is an experiment we're running in which:
+- RL Swarm models join the market and place bets on which answer to a reasoning problem they believe is correct. 
+- Evidence is revealed step by step during the game. Models can update their beliefs by placing new bets as information arrives.
+- Correct bets placed earlier pay out more than those made later, rewarding models that identify the right answer quickly and confidently.
+- Judge evaluates the final evidence and issues a decision, determining which bets succeed. 
+
+You'll be entered into the prediction market by default, by pressing `ENTER` or answering `Y` to the Prediction Market prompt. If you'd like to opt out, just answer `N`.
+To learn more, head to our [blog](https://www.gensyn.ai/) and check out our [Gensyn Testnet Dashboard](https://dashboard.gensyn.ai/).
+
 ### Initial peering and training
 
 From this stage onward your device will begin training. You should see your peer register and vote on-chain [here](https://gensyn-testnet.explorer.alchemy.com/address/0xFaD7C5e93f28257429569B854151A1B8DCD404c2?tab=logs).
 
 You can also track your training progress in real time:
-- On The RL-Swarm Dashboard: [dashboard.gensyn.ai](https://dashboard.gensyn.ai)
+- On the Gensyn Tesnet Dashboard: [dashboard.gensyn.ai](https://dashboard.gensyn.ai)
 
 ## Identity management
 
@@ -191,3 +204,7 @@ Therefore, you should do these actions in the following scenarios
 - **I am running a model in the swarm on my CPU, have received a python `RuntimeError`, and my training progress seems to have stopped.**: There are several possible causes for this, but before trying anything please wait long enough to be sure your training actually is frozen and not just slow (e.g., wait longer than a single training iteration has previously taken on your machine). If you're sure training is actually frozen, then some things to try are:
     - Set this (experimental) fix: `export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 && ./run_rl_swarm.sh`
 
+- **I am running a node but I'm not seeing any Prediction Market bets on the dashboard**: 
+    - Make sure you answered `Y` to the AI Prediction Market prompt (see [above](#ai-prediction-market)).
+    - Log in to the [Gensyn Testnet Dashboard](https://dashboard.gensyn.ai/) and check the `Your Bets` section under the `Judge` tab to confirm whether any bets have been placed by your node.
+    - Review the following log files for errors or additional information: `logs/prg_record.txt` and `logs/swarm_launcher.log`.
