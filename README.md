@@ -15,11 +15,11 @@ This iteration of rl-swarm is powered by the [GenRL](https://github.com/gensyn-a
 
 ## Requirements
 
-Your hardware requirements will vary depending on a number of factors including model size and the accelerator platform you use.  Users running large NVIDIA GPU will be assigned a model from the large model pool, while users running less powerful hardware will be assigned a model from the small model pool. This design decision is intended to allow users to advance at a similar rate regardless of the hardware they use, maximizing their utility to the swarm.      
+Your hardware requirements will vary depending on a number of factors including model size and the accelerator platform you use.  Users running a large NVIDIA GPU will be assigned a model from the large model pool, while users running less powerful hardware will be assigned a model from the small model pool. This design decision is intended to allow users to advance at a similar rate regardless of the hardware they use, maximizing their utility to the swarm.      
 
 **Supported Hardware**
 
-- arm64 or x86 CPU with minimum 32gb ram (note that if you run other applications during training it might crash training).
+- arm64 or x86 CPU with a minimum of 32GB RAM (note that if you run other applications during training it might crash the training).
 
 
 OR
@@ -56,7 +56,7 @@ git clone https://github.com/gensyn-ai/rl-swarm
 
 #### 2. Install Docker
 
-Make sure you have Docker installed and the Docker daemon is running on your machine. To do that, follow [these instructions](https://docs.docker.com/get-started/get-docker/) according to your OS. Ensure you allot sufficient memory to the Docker containers. For example if using Docker Desktop, this can be done by going to Docker Desktop Settings > Resources > Advanced > Memory Limit, and increasing it to the maximum possible value.
+Make sure you have Docker installed and the Docker daemon is running on your machine. To do that, follow [these instructions](https://docs.docker.com/get-started/get-docker/) according to your OS. Ensure you allot sufficient memory to the Docker containers. For example, if you are using Docker Desktop, this can be done by going to Docker Desktop Settings > Resources > Advanced > Memory Limit, and increasing it to the maximum possible value.
 
 #### 3. Start the Swarm
 
@@ -82,7 +82,7 @@ If `docker-compose` does not work when running the above commands, please try `d
 
 ### Experimental (advanced) mode
 
-If you want to experiment with the [GenRL](https://github.com/gensyn-ai/genrl) library or the[configurable parameters](https://github.com/gensyn-ai/rl-swarm/blob/main/rgym_exp/config/rg-swarm.yaml ), we recommend you run RL Swarm via shell script:
+If you want to experiment with the [GenRL](https://github.com/gensyn-ai/genrl) library or the [configurable parameters](https://github.com/gensyn-ai/rl-swarm/blob/main/rgym_exp/config/rg-swarm.yaml ), we recommend you run RL Swarm via shell script:
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
@@ -94,7 +94,7 @@ To learn more about experimental mode, check out our [getting started guide](htt
 
 1. A browser window will pop open (you'll need to manually navigate to http://localhost:3000/ if you're on a VM).
 2. Click 'login'.
-3. Login with your preferred method.
+3. Log in with your preferred method.
 
 ### Huggingface
 
@@ -106,27 +106,27 @@ During setup, you'll be asked if you'd like to participate in the **AI Predictio
 
 This is an experiment we're running in which:
 - RL Swarm models join the market and place bets on which answer to a reasoning problem they believe is correct. 
-- Evidence is revealed step by step during the game. Models can update their beliefs by placing new bets as information arrives.
+- Evidence is revealed step by step throughout the game. Models can update their beliefs by placing new bets as information arrives.
 - Correct bets placed earlier pay out more than those made later, rewarding models that identify the right answer quickly and confidently.
-- Judge evaluates the final evidence and issues a decision, determining which bets succeed. 
+- The Judge evaluates the final evidence and issues a decision, determining which bets succeed. 
 
 You'll be entered into the prediction market by default, by pressing `ENTER` or answering `Y` to the Prediction Market prompt. If you'd like to opt out, just answer `N`.
-To learn more, head to our [blog](https://www.gensyn.ai/) and check out our [Gensyn Testnet Dashboard](https://dashboard.gensyn.ai/).
+To learn more, head to our [blog](https://blog.gensyn.ai/) and check out our [Gensyn Testnet Dashboard](https://dashboard.gensyn.ai/).
 
 ### Initial peering and training
 
 From this stage onward your device will begin training. You should see your peer register and vote on-chain [here](https://gensyn-testnet.explorer.alchemy.com/address/0xFaD7C5e93f28257429569B854151A1B8DCD404c2?tab=logs).
 
 You can also track your training progress in real time:
-- On the Gensyn Tesnet Dashboard: [dashboard.gensyn.ai](https://dashboard.gensyn.ai)
+- On the Gensyn Testnet Dashboard: [dashboard.gensyn.ai](https://dashboard.gensyn.ai)
 
 ## Identity management
 
 ### Introduction
 
-On-chain identity is managed via an Alchemy modal sign-in screen. You need to supply an email address or login via a supported method (e.g. Google). This creates an EOA public/private key (which are stored by Alchemy). You will also receive local session keys in the `userApiKey`. Note that these aren't your EOA public/private keys. 
+On-chain identity is managed via an Alchemy modal sign-in screen. You need to supply an email address or login via a supported method (e.g. Google). This creates an EOA public/private keys (which are stored by Alchemy). You will also receive local session keys in the `userApiKey`. Note that these aren't your EOA public/private keys. 
 
-During the initial set-up process, you will also create a `swarm.pem` file which maintains the identity of your peer. This is then registered on chain using the EOA wallet hosted in Alchemy, triggered using your local api keys. This links the `swarm.pem` to the `email address` (and corresponding EOA in Alchemy).
+During the initial setup process, you will also create a `swarm.pem` file which maintains the identity of your peer. This is then registered on chain using the EOA wallet hosted in Alchemy, triggered using your local api keys. This links the `swarm.pem` to the `email address` (and corresponding EOA in Alchemy).
 
 **If you want to link multiple nodes to a single EOA**, simply sign up each node using the same email address. You will get a new peer ID for each node, however they will all be linked to the same EOA that your email is linked to.
 
@@ -180,7 +180,7 @@ Therefore, you should do these actions in the following scenarios
 
     - **How do I access the login screen if I'm running in a VM?**: port forwarding. Add this SSH flag: `-L 3000:localhost:3000` when connecting to your VM. E.g. `gcloud compute ssh --zone "us-central1-a" [your-vm] --project [your-project] -- -L 3000:localhost:3000`. Note, some VPSs may not work with `rl-swarm`. Check the Gensyn [discord](https://discord.gg/AdnyWNzXh5) for up-to-date information on this.
     
-    - **Disconnection/general issues**: If you are tunneling to a VM and suffer a broken pipe, you will likely encounter OOM or unexpected behaviour the first time you relaunch the script. If you `control + c` and kill the script it should spin down all background processes. Restart the script and everything should work normally.
+    - **Disconnection/general issues**: If you are tunneling to a VM and suffer a broken pipe, you will likely encounter OOM errors or unexpected behaviour the first time you relaunch the script. If you `control + c` and kill the script it should spin down all background processes. Restart the script and everything should function normally.
 
 - **Issues with npm/general installation?**
 
@@ -197,7 +197,7 @@ Therefore, you should do these actions in the following scenarios
 
 - **I have multiple GPUs on one machine, can I run multiple peers?**: Yes - but you'll need to manually change things. You'll need to isolate each GPU, install this repo for each GPU, and expose each peer under a different port to pass the modal onboard.
 
-- **My round/stage is behind the smart contract/other peers?**: This is expected behaviour given the different speeds of machines in the network. Once your machine completes it's current round, it will move to the the current round.
+- **My round/stage is behind the smart contract/other peers?**: This is expected behaviour given the different speeds of machines in the network. Once your machine completes its current round, it will move to the current round.
 
 - **I want to use a bigger and/or different model in the RL swarm, can I do that?**: Yes - but we only recommend doing so if you are comfortable understanding what size model can reasonably run on your hardware.  If you elect to bring a custom model, just paste the repo/model name into the command line when prompted.
 
