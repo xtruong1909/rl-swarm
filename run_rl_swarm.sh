@@ -2,7 +2,16 @@
 
 set -euo pipefail
 
-# General arguments
+# ==== KILL PORT 3000 TRƯỚC KHI CHẠY ====
+echo "Kiem tra port 3000..."
+PORT_PID=$(ss -ltnp | grep ':3000' | awk -F 'pid=' '{print $2}' | cut -d',' -f1 || true)
+
+if [ -n "$PORT_PID" ]; then
+    kill -9 "$PORT_PID"
+    echo "Da kill port 3000."
+else
+    echo "Port 3000 dang ranh."
+fi
 ROOT=$PWD
 
 # GenRL Swarm version to use
@@ -25,23 +34,7 @@ IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
 
 DOCKER=${DOCKER:-""}
 GENSYN_RESET_CONFIG=${GENSYN_RESET_CONFIG:-""}
-
-# Bit of a workaround for the non-root docker container.
-if [ -n "$DOCKER" ]; then
-    volumes=(
-        /home/gensyn/rl_swarm/modal-login/temp-data
-        /home/gensyn/rl_swarm/keys
-        /home/gensyn/rl_swarm/configs
-        /home/gensyn/rl_swarm/logs
-    )
-
-    for volume in ${volumes[@]}; do
-        sudo chown -R 1001:1001 $volume
-    done
-fi
-
-# Will ignore any visible GPUs if set.
-CPU_ONLY=${CPU_ONLY:-""}
+CPU_ONLY=true
 
 # Set if successfully parsed from modal-login/temp-data/userData.json.
 ORG_ID=${ORG_ID:-""}
@@ -51,51 +44,9 @@ BLUE_TEXT="\033[34m"
 RED_TEXT="\033[31m"
 RESET_TEXT="\033[0m"
 
-echo_green() {
-    echo -e "$GREEN_TEXT$1$RESET_TEXT"
-}
-
-echo_blue() {
-    echo -e "$BLUE_TEXT$1$RESET_TEXT"
-}
-
-echo_red() {
-    echo -e "$RED_TEXT$1$RESET_TEXT"
-}
-
-ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
-
-# Function to clean up the server process upon exit
-cleanup() {
-    echo_green ">> Shutting down trainer..."
-
-    # Remove modal credentials if they exist
-    rm -r $ROOT_DIR/modal-login/temp-data/*.json 2> /dev/null || true
-
-    # Kill all processes belonging to this script's process group
-    kill -- -$$ || true
-
-    exit 0
-}
-
-errnotify() {
-    echo_red ">> An error was detected while running rl-swarm. See $ROOT/logs for full logs."
-}
-
-trap cleanup EXIT
-trap errnotify ERR
-
-echo -e "\033[38;5;224m"
-cat << "EOF"
-    ██████  ██            ███████ ██     ██  █████  ██████  ███    ███
-    ██   ██ ██            ██      ██     ██ ██   ██ ██   ██ ████  ████
-    ██████  ██      █████ ███████ ██  █  ██ ███████ ██████  ██ ████ ██
-    ██   ██ ██                 ██ ██ ███ ██ ██   ██ ██   ██ ██  ██  ██
-    ██   ██ ███████       ███████  ███ ███  ██   ██ ██   ██ ██      ██
-
-    From Gensyn
-
-EOF
+echo_green() { echo -e "$GREEN_TEXT$1$RESET_TEXT"; }
+echo_blue() { echo -e "$BLUE_TEXT$1$RESET_TEXT"; }
+echo_red() { echo -e "$RED_TEXT$1$RESET_TEXT"; }
 
 # Create logs directory if it doesn't exist
 mkdir -p "$ROOT/logs"
@@ -106,9 +57,9 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     cd modal-login
     # Check if the yarn command exists; if not, install Yarn.
 
-    # Node.js + NVM setup
+    # Node.js + Yarn install
     if ! command -v node > /dev/null 2>&1; then
-        echo "Node.js not found. Installing NVM and latest Node.js..."
+        echo "Installing Node.js..."
         export NVM_DIR="$HOME/.nvm"
         if [ ! -d "$NVM_DIR" ]; then
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -116,22 +67,13 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
         nvm install node
-    else
-        echo "Node.js is already installed: $(node -v)"
     fi
 
     if ! command -v yarn > /dev/null 2>&1; then
-        # Detect Ubuntu (including WSL Ubuntu) and install Yarn accordingly
-        if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
-            echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
-            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-            echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-            sudo apt update && sudo apt install -y yarn
-        else
-            echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
-            # This lands in $NVM_DIR/versions/node/<ver>/bin which is already on PATH
-            npm install -g --silent yarn
-        fi
+        echo "Installing Yarn..."
+        curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo tee /etc/apt/trusted.gpg.d/yarn.asc > /dev/null
+        echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list > /dev/null
+        sudo apt update && sudo apt install -y yarn
     fi
 
     ENV_FILE="$ROOT"/modal-login/.env
@@ -153,51 +95,76 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
         echo "Building server"
         yarn build > "$ROOT/logs/yarn.log" 2>&1
     fi
-    yarn start >> "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
-
-    SERVER_PID=$!  # Store the process ID
+    echo_green ">> Starting backend server (modal-login)"
+    yarn start >> "$ROOT/logs/yarn.log" 2>&1 &
+    SERVER_PID=$!
     echo "Started server process: $SERVER_PID"
     sleep 5
 
-    # Try to open the URL in the default browser
-    if [ -z "$DOCKER" ]; then
-        if open http://localhost:3000 2> /dev/null; then
-            echo_green ">> Successfully opened http://localhost:3000 in your default browser."
-        else
-            echo ">> Failed to open http://localhost:3000. Please open it manually."
-        fi
+    # Check for existing login
+    if ls "$ROOT"/modal-login/temp-data/user*.json 1> /dev/null 2>&1; then
+        echo_green ">> Modal login already detected. Skipping ngrok."
     else
-        echo_green ">> Please open http://localhost:3000 in your host browser."
+        echo ">> No modal login found. Starting ngrok for login..."
+
+        if ! command -v ngrok &> /dev/null; then
+            echo ">> Installing ngrok..."
+            curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc > /dev/null
+            echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list > /dev/null
+            sudo apt update > /dev/null
+            sudo apt install -y ngrok > /dev/null
+        fi
+
+        # 💡 CHỈ yêu cầu token nếu chưa config ngrok
+        if [ ! -f "$HOME/.config/ngrok/ngrok.yml" ]; then
+            echo ">> ngrok chua cau hinh."
+            read -p ">> Nhap token ngrok: " NGROK_TOKEN
+            ngrok config add-authtoken "$NGROK_TOKEN"
+        else
+            echo_green ">> ngrok da duoc cau hinh"
+        fi
+
+        nohup ngrok http 3000 > /dev/null 2>&1 &
+        sleep 3
+
+        NGROK_URL=$(curl -s http://localhost:4040/api/tunnels \
+            | grep -o '"public_url":"https:[^"]*' \
+            | cut -d '"' -f4)
+
+        echo_green ">> Open http://localhost:3000."
+        if [ -n "$NGROK_URL" ]; then
+            echo_green ">> Truy cap tu xa qua ngrok: $NGROK_URL"
+        else
+            echo_red ">> Khong lay duoc dia chi ngrok public."
+        fi
     fi
 
-    cd ..
+    cd "$ROOT"
 
-    echo_green ">> Waiting for modal userData.json to be created..."
+    echo_green ">> Dang cho tao file userData.json..."
     while [ ! -f "modal-login/temp-data/userData.json" ]; do
-        sleep 5  # Wait for 5 seconds before checking again
+        sleep 5
     done
-    echo "Found userData.json. Proceeding..."
 
+    echo "Da tim thay userData.json. Tiep tuc..."
     ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
-    echo "Your ORG_ID is set to: $ORG_ID"
+    echo "ORG_ID của bạn: $ORG_ID"
 
-    # Wait until the API key is activated by the client
-    echo "Waiting for API key to become activated..."
+    echo "Cho kich hoat API key..."
     while true; do
         STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
         if [[ "$STATUS" == "activated" ]]; then
-            echo "API key is activated! Proceeding..."
+            echo "API key da duoc kich hoat!"
             break
         else
-            echo "Waiting for API key to be activated..."
+            echo "Cho kich hoat API key..."
             sleep 5
         fi
     done
 fi
 
-echo_green ">> Getting requirements..."
+echo_green ">> Cai dat thu vien Python..."
 pip install --upgrade pip
-
  echo_green ">> Installing GenRL..."
 pip install gensyn-genrl==${GENRL_TAG}
 pip install reasoning-gym>=0.1.20 # for reasoning gym env
@@ -206,68 +173,21 @@ pip install hivemind@git+https://github.com/gensyn-ai/hivemind@639c964a8019de631
 
 if [ ! -d "$ROOT/configs" ]; then
     mkdir "$ROOT/configs"
-fi  
-if [ -f "$ROOT/configs/rg-swarm.yaml" ]; then
-    # Use cmp -s for a silent comparison. If different, backup and copy.
-    if ! cmp -s "$ROOT/rgym_exp/config/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"; then
-        if [ -z "$GENSYN_RESET_CONFIG" ]; then
-            echo_green ">> Found differences in rg-swarm.yaml. If you would like to reset to the default, set GENSYN_RESET_CONFIG to a non-empty value."
-        else
-            echo_green ">> Found differences in rg-swarm.yaml. Backing up existing config."
-            mv "$ROOT/configs/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml.bak"
-            cp "$ROOT/rgym_exp/config/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
-        fi
-    fi
-else
-    # If the config doesn't exist, just copy it.
-    cp "$ROOT/rgym_exp/config/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
-fi
 
+fi
+cp "$ROOT/rgym_exp/config/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
 if [ -n "$DOCKER" ]; then
     # Make it easier to edit the configs on Linux systems.
     sudo chmod -R 0777 /home/gensyn/rl_swarm/configs
 fi
 
-echo_green ">> Done!"
+MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
+echo_green ">> $MODEL_NAME"
+export MODEL_NAME
+PRG_GAME=true
 
-
-echo -en $GREEN_TEXT
-read -p ">> Would you like to push models you train in the RL swarm to the Hugging Face Hub? [y/N] " yn
-echo -en $RESET_TEXT
-yn=${yn:-N} # Default to "N" if the user presses Enter
-case $yn in
-    [Yy]*) read -p "Enter your Hugging Face access token: " HUGGINGFACE_ACCESS_TOKEN ;;
-    [Nn]*) HUGGINGFACE_ACCESS_TOKEN="None" ;;
-    *) echo ">>> No answer was given, so NO models will be pushed to Hugging Face Hub" && HUGGINGFACE_ACCESS_TOKEN="None" ;;
-esac
-
-
-echo -en $GREEN_TEXT
-read -p ">> Enter the name of the model you want to use in huggingface repo/name format, or press [Enter] to use the default model. " MODEL_NAME
-echo -en $RESET_TEXT
-
-# Only export MODEL_NAME if user provided a non-empty value
-if [ -n "$MODEL_NAME" ]; then
-    export MODEL_NAME
-    echo_green ">> Using model: $MODEL_NAME"
-else
-    echo_green ">> Using default model from config"
-fi
-
-echo -en $GREEN_TEXT
-read -p ">> Would you like your model to participate in the AI Prediction Market? [Y/n] " yn
-if [ "$yn" = "n" ] || [ "$yn" = "N" ]; then
-    PRG_GAME=false
-    echo_green ">> Playing PRG game: false"
-else
-    echo_green ">> Playing PRG game: true"
-fi
-
-echo -en $RESET_TEXT
-echo_green ">> Good luck in the swarm!"
-echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
-
-python -m rgym_exp.runner.swarm_launcher \
+echo_green ">> Khoi chay rl-swarm..."
+python3 -m rgym_exp.runner.swarm_launcher \
     --config-path "$ROOT/rgym_exp/config" \
     --config-name "rg-swarm.yaml" 
 
