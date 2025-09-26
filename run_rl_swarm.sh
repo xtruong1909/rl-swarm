@@ -110,7 +110,7 @@ fi
 MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
 echo_green ">> Using model: $MODEL_NAME"
 export MODEL_NAME
-PRG_GAME=true
+export PRG_GAME=true
 echo_green ">> Starting rl-swarm..."
 
 python3 -m rgym_exp.runner.swarm_launcher \
