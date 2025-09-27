@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT=$PWD
-GENRL_TAG="v0.1.6"
+GENRL_TAG="v0.1.8"
 
 export IDENTITY_PATH
 export GENSYN_RESET_CONFIG
