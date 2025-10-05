@@ -10,7 +10,7 @@ datasets:
     config:
       min_size: 10
       max_size: 30
-      num_train: 3
+      num_train: 1
       seed: 42
       size: 500
 
