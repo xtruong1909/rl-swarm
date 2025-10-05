@@ -48,7 +48,7 @@ game_manager:
   log_dir: ${log_dir}
   hf_token: ${oc.env:HUGGINGFACE_ACCESS_TOKEN,null}
   hf_push_frequency: ${training.hf_push_frequency}
-  run_mode: "train_and_evaluate"
+  run_mode: "train"
   bootnodes: ${communications.initial_peers}
   prg_game_config: ${prg_game_config}
   game_state: 
