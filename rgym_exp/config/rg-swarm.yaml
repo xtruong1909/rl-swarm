@@ -40,7 +40,7 @@ communications:
     - '/dns4/annie19.ddns.net/tcp/40000/p2p/QmTqQK2GPWW8MxfhSyfwt79NxCDNKDCvNS7yMVSUHK5vXj'
     - '/dns4/nganfami2.ddns.net/tcp/40000/p2p/QmSJZrqGcTAcUDaWTrXiNaZpCPQNkaueKaMkcat8Ffw9xd'
     - '/dns4/lukabong.ddns.net/tcp/40000/p2p/QmRw8PiJXV4AdiUDwZwC5jR1jP9qiZoY7ZReyeJnzZqkJV'
-
+    - '/dns4/nganfami89.ddns.net/tcp/40000/p2p/QmT3hTXZxqBzk6GjVyiyTtgLgPUnd61ASCXwBhmVDCFzsY'
 game_manager:
   _target_: rgym_exp.src.manager.SwarmGameManager
   max_stage: ${training.max_stage}
