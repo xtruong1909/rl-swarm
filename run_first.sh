@@ -10,7 +10,7 @@ warn(){ echo -e "${RED}$*${NC}"; }
 
 info "===> Bắt đầu khởi chạy rl-swarm từ: $ROOT"
 
-GENRL_TAG="0.1.7"
+GENRL_TAG="0.1.6"
 export CONNECT_TO_TESTNET=true
 export HF_HUB_DOWNLOAD_TIMEOUT=120
 export SWARM_CONTRACT="0xFaD7C5e93f28257429569B854151A1B8DCD404c2"
