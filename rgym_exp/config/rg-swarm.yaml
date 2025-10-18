@@ -37,7 +37,7 @@ prg_game_config:
 
 communications:
   initial_peers:
-    - '/ip4/38.101.215.12/tcp/30011/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ'
+    - '/ip4/160.30.20.43/tcp/40000/p2p/QmWhxnz4DMK2o6PaaovQ2q71sx2bLLRTeFSdrAEeeWJ9y2'
 game_manager:
   _target_: rgym_exp.src.manager.SwarmGameManager
   max_stage: ${training.max_stage}
